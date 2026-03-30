@@ -1,0 +1,182 @@
+[
+  {
+    "role": "Software Engineer",
+    "topic": "Data Structures",
+    "difficulty": "easy",
+    "type": "technical",
+    "text": "What is the difference between a stack and a queue?",
+    "ideal_keywords": ["stack", "queue", "LIFO", "FIFO", "push", "pop", "enqueue", "dequeue"],
+    "ideal_answer": "A stack follows Last In First Out (LIFO) where the last element added is the first removed, using push and pop operations. A queue follows First In First Out (FIFO) where the first element added is the first removed, using enqueue and dequeue operations."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "Data Structures",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "Explain how a hash map works internally and how collisions are handled.",
+    "ideal_keywords": ["hash function", "bucket", "collision", "chaining", "open addressing", "load factor", "rehashing"],
+    "ideal_answer": "A hash map uses a hash function to map keys to bucket indices. Collisions occur when two keys map to the same index. They are handled via chaining (linked list at each bucket) or open addressing (probing for next empty slot). Load factor triggers rehashing when too full."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "Data Structures",
+    "difficulty": "hard",
+    "type": "technical",
+    "text": "Design a data structure that supports insert, delete, and getRandom in O(1) time.",
+    "ideal_keywords": ["hashmap", "array", "O(1)", "random", "index", "swap", "dictionary"],
+    "ideal_answer": "Use a hashmap and an array together. The array stores elements, the hashmap stores element to index mappings. Insert appends to array and adds to map. Delete swaps with last element and removes. getRandom picks a random array index."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "System Design",
+    "difficulty": "easy",
+    "type": "technical",
+    "text": "What is the difference between SQL and NoSQL databases?",
+    "ideal_keywords": ["SQL", "NoSQL", "relational", "schema", "scalability", "ACID", "MongoDB", "structured"],
+    "ideal_answer": "SQL databases are relational, use structured schemas, and support ACID transactions. NoSQL databases are non-relational, schema-flexible, and designed for horizontal scalability. SQL suits structured data; NoSQL suits unstructured or rapidly changing data."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "System Design",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "How would you design a URL shortening service like bit.ly?",
+    "ideal_keywords": ["hash", "base62", "database", "redirect", "cache", "collision", "unique", "scalability"],
+    "ideal_answer": "Generate a short code using base62 encoding of a unique ID or hash of the URL. Store the mapping in a database. On redirect, look up the short code and return 301/302. Use caching for popular URLs and handle collisions."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "System Design",
+    "difficulty": "hard",
+    "type": "technical",
+    "text": "Design a distributed rate limiter that works across multiple servers.",
+    "ideal_keywords": ["Redis", "sliding window", "token bucket", "distributed", "atomic", "TTL", "Lua script", "consistency"],
+    "ideal_answer": "Use Redis with atomic operations for shared state across servers. Implement token bucket or sliding window algorithm. Use Redis Lua scripts for atomic check-and-decrement. Set TTL for automatic key expiry. Handle Redis failures with fallback local limiting."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "Object Oriented Programming",
+    "difficulty": "easy",
+    "type": "technical",
+    "text": "Explain the four pillars of object oriented programming.",
+    "ideal_keywords": ["encapsulation", "inheritance", "polymorphism", "abstraction", "class", "object"],
+    "ideal_answer": "The four pillars are encapsulation (bundling data and methods), inheritance (child class inheriting from parent), polymorphism (same interface, different implementations), and abstraction (hiding implementation details behind an interface)."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "Object Oriented Programming",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "What is the SOLID principle? Explain each part.",
+    "ideal_keywords": ["Single responsibility", "Open closed", "Liskov", "Interface segregation", "Dependency inversion", "SOLID"],
+    "ideal_answer": "SOLID stands for Single Responsibility (one reason to change), Open/Closed (open for extension, closed for modification), Liskov Substitution (subclasses replaceable for base), Interface Segregation (small specific interfaces), Dependency Inversion (depend on abstractions)."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "Behavioural",
+    "difficulty": "easy",
+    "type": "behavioural",
+    "text": "Tell me about a time you had to meet a tight deadline. How did you handle it?",
+    "ideal_keywords": ["prioritize", "communicate", "plan", "team", "deadline", "delivered", "organized"],
+    "ideal_answer": "A strong answer uses the STAR method: describe the Situation, Task, Action taken (prioritization, communication, focused execution), and Result (delivered on time with quality)."
+  },
+  {
+    "role": "Software Engineer",
+    "topic": "Behavioural",
+    "difficulty": "medium",
+    "type": "behavioural",
+    "text": "Describe a situation where you disagreed with a technical decision made by your team. What did you do?",
+    "ideal_keywords": ["communicate", "data", "respectful", "compromise", "outcome", "listen", "persuade"],
+    "ideal_answer": "Good answers show respectful disagreement using data and reasoning, active listening to others' perspectives, willingness to compromise, and focusing on the best outcome for the team rather than being right."
+  },
+  {
+    "role": "Data Scientist",
+    "topic": "Machine Learning",
+    "difficulty": "easy",
+    "type": "technical",
+    "text": "What is the difference between supervised and unsupervised learning?",
+    "ideal_keywords": ["labeled", "unlabeled", "classification", "regression", "clustering", "training", "prediction"],
+    "ideal_answer": "Supervised learning trains on labeled data to predict outputs (classification, regression). Unsupervised learning finds patterns in unlabeled data without predefined outputs (clustering, dimensionality reduction)."
+  },
+  {
+    "role": "Data Scientist",
+    "topic": "Machine Learning",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "Explain overfitting and the techniques you would use to prevent it.",
+    "ideal_keywords": ["overfitting", "regularization", "dropout", "cross-validation", "pruning", "early stopping", "bias variance"],
+    "ideal_answer": "Overfitting is when a model learns training data too well and fails to generalize. Prevention techniques include regularization (L1/L2), dropout, cross-validation, early stopping, pruning, and getting more training data."
+  },
+  {
+    "role": "Data Scientist",
+    "topic": "Statistics",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "What is the p-value and how do you interpret it?",
+    "ideal_keywords": ["p-value", "null hypothesis", "significance", "threshold", "0.05", "reject", "probability"],
+    "ideal_answer": "The p-value is the probability of observing results as extreme as the data if the null hypothesis were true. A p-value below the significance threshold (typically 0.05) means we reject the null hypothesis. It does not measure the probability that the hypothesis is true."
+  },
+  {
+    "role": "Frontend Developer",
+    "topic": "React",
+    "difficulty": "easy",
+    "type": "technical",
+    "text": "What is the difference between state and props in React?",
+    "ideal_keywords": ["state", "props", "mutable", "immutable", "component", "parent", "child", "re-render"],
+    "ideal_answer": "Props are read-only inputs passed from parent to child components. State is mutable data managed within a component. When state or props change, the component re-renders. Props flow down; state is local unless lifted up."
+  },
+  {
+    "role": "Frontend Developer",
+    "topic": "React",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "Explain the useEffect hook and when you would use it.",
+    "ideal_keywords": ["useEffect", "side effects", "dependency array", "cleanup", "mount", "unmount", "fetch", "subscription"],
+    "ideal_answer": "useEffect runs side effects after render. The dependency array controls when it runs — empty array means once on mount, with dependencies means on change, no array means every render. Return a cleanup function for subscriptions or timers."
+  },
+  {
+    "role": "Frontend Developer",
+    "topic": "CSS",
+    "difficulty": "easy",
+    "type": "technical",
+    "text": "What is the difference between flexbox and CSS grid?",
+    "ideal_keywords": ["flexbox", "grid", "one-dimensional", "two-dimensional", "row", "column", "layout", "alignment"],
+    "ideal_answer": "Flexbox is one-dimensional, handling layout in a single row or column. Grid is two-dimensional, handling rows and columns simultaneously. Use flexbox for component-level layout and grid for page-level layout."
+  },
+  {
+    "role": "Backend Developer",
+    "topic": "APIs",
+    "difficulty": "easy",
+    "type": "technical",
+    "text": "What is REST and what are its core principles?",
+    "ideal_keywords": ["REST", "stateless", "HTTP", "resource", "GET", "POST", "PUT", "DELETE", "uniform interface"],
+    "ideal_answer": "REST is an architectural style for APIs using HTTP. Core principles are statelessness, client-server separation, uniform interface (standard HTTP methods), resource-based URLs, and cacheability."
+  },
+  {
+    "role": "Backend Developer",
+    "topic": "APIs",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "How would you handle authentication and authorization in a REST API?",
+    "ideal_keywords": ["JWT", "OAuth", "token", "middleware", "role", "permission", "Bearer", "refresh token"],
+    "ideal_answer": "Use JWT tokens for stateless authentication. The client sends a Bearer token in the Authorization header. The server validates it via middleware. Authorization checks roles and permissions after authentication. Use refresh tokens for long sessions."
+  },
+  {
+    "role": "Backend Developer",
+    "topic": "Databases",
+    "difficulty": "medium",
+    "type": "technical",
+    "text": "What is database indexing and when should you use it?",
+    "ideal_keywords": ["index", "query", "performance", "B-tree", "trade-off", "write", "read", "cardinality"],
+    "ideal_answer": "An index is a data structure that speeds up read queries at the cost of slower writes and extra storage. Use indexes on frequently queried columns, foreign keys, and high-cardinality fields. Avoid over-indexing as it slows inserts and updates."
+  },
+  {
+    "role": "Backend Developer",
+    "topic": "Behavioural",
+    "difficulty": "easy",
+    "type": "behavioural",
+    "text": "How do you approach debugging a production issue you have never seen before?",
+    "ideal_keywords": ["logs", "reproduce", "isolate", "systematic", "monitor", "hypothesis", "rollback"],
+    "ideal_answer": "Check logs and monitoring first to understand scope. Reproduce in a safe environment if possible. Form hypotheses and test them systematically. Isolate the component causing the issue. Fix, test, deploy, and document the root cause."
+  }
+]
