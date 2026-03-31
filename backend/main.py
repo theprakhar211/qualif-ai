@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from loguru import logger
 from database import connect_db, close_db
 from routers import auth, interview, evaluation, dashboard, tts, resume
+import os
 
 
 @asynccontextmanager
@@ -21,7 +22,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://qualif-smart-ai.vercel.app",
+        os.getenv("FRONTEND_URL", ""),
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
