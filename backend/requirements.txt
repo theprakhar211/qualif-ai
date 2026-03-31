@@ -16,3 +16,4 @@ pydantic-settings==2.0.0
 slowapi==0.1.9
 loguru==0.7.0
 groq==0.11.0
+email-validator==2.2.0
