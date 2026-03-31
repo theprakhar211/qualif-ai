@@ -32,7 +32,7 @@ export default function Login() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <img src="/logo.png" alt="Qualif-AI" style={{ height: '32px', objectFit: 'contain' }} />
+        <img src="/logo.png" alt="Qualif-AI" style={{ height: '70px', objectFit: 'contain' }} />
         <h1 style={styles.title}>Welcome back</h1>
         <p style={styles.sub}>Sign in to continue your interview prep</p>
 

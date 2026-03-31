@@ -126,7 +126,7 @@ export default function Setup() {
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <img src="/logo.png" alt="Qualif-AI" style={{ height: '32px', objectFit: 'contain' }} />
+        <img src="/logo.png" alt="Qualif-AI" style={{ height: '70px', objectFit: 'contain' }} />
         <div style={styles.headerRight}>
           <span style={styles.userName}>{user.name}</span>
           <button onClick={() => navigate('/dashboard')} style={styles.ghostBtn}>
@@ -294,7 +294,7 @@ export default function Setup() {
 
 const styles = {
   page:        { minHeight: '100vh', background: '#0f0f0f', color: '#fff' },
-  header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', borderBottom: '1px solid #1e1e1e' },
+  header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 2rem', borderBottom: '1px solid #1e1e1e' },
   logo:        { fontSize: '20px', fontWeight: '700' },
   ai:          { color: '#6366f1' },
   headerRight: { display: 'flex', alignItems: 'center', gap: '1rem' },

@@ -88,7 +88,7 @@ export default function Dashboard() {
     return (
       <div style={styles.page}>
         <div style={styles.header}>
-          <img src="/logo.png" alt="Qualif-AI" style={{ height: '32px', objectFit: 'contain' }} />
+          <img src="/logo.png" alt="Qualif-AI" style={{ height: '70px', objectFit: 'contain' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '1rem' }}>
           <div style={styles.spinner} />
