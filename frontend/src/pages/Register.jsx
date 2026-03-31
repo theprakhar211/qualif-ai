@@ -36,7 +36,7 @@ export default function Register() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <div style={styles.logo}>Qualif<span style={styles.ai}>AI</span></div>
+        <img src="/logo.png" alt="Qualif-AI" style={{ height: '32px', objectFit: 'contain' }} />
         <h1 style={styles.title}>Create your account</h1>
         <p style={styles.sub}>Start practicing interviews with AI today</p>
 
