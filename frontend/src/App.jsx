@@ -5,6 +5,7 @@ import Interview from './pages/Interview'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import axios from 'axios'
 
 // Global error boundary — catches any unhandled React crash
 class ErrorBoundary extends Component {
@@ -55,6 +56,12 @@ class ErrorBoundary extends Component {
     return this.props.children
   }
 }
+
+const pingBackend = () => {
+  const url = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  axios.get(`${url}/health`).catch(() => {})
+}
+pingBackend()
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token')

@@ -27,8 +27,13 @@ export default function Register() {
       localStorage.setItem('user', JSON.stringify(res.data.user))
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed. Try again.')
-    } finally {
+  if (!err.response || err.code === 'ECONNABORTED') {
+    setError('Server is waking up — this takes up to 30 seconds on first visit. Please try again in a moment.')
+  } else {
+    setError(err.response?.data?.detail || 'Login failed. Try again.')
+  }
+}
+     finally {
       setLoading(false)
     }
   }
