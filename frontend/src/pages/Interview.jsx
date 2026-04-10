@@ -266,7 +266,7 @@ export default function Interview() {
             <button onClick={() => navigate('/dashboard')} style={styles.primaryBtn}>
               View dashboard
             </button>
-            <button onClick={() => navigate('/')} style={styles.ghostBtn}>
+            <button onClick={() => navigate('/app')} style={styles.ghostBtn}>
               New interview
             </button>
           </div>

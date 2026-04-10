@@ -122,7 +122,7 @@ export default function Dashboard() {
         <div style={styles.logo}>Qualif<span style={styles.ai}>AI</span></div>
         <div style={styles.headerRight}>
           <span style={styles.userName}>{user.name}</span>
-          <button onClick={() => navigate('/')} style={styles.ghostBtn}>New interview</button>
+          <button onClick={() => navigate('/app')} style={styles.ghostBtn}>New interview</button>
           <button onClick={logout} style={styles.ghostBtn}>Logout</button>
         </div>
       </div>
@@ -186,7 +186,7 @@ export default function Dashboard() {
             ) : (
               <div style={styles.emptyChart}>
                 <p style={styles.muted}>Complete at least 2 interviews to see your score trend.</p>
-                <button onClick={() => navigate('/')} style={{ ...styles.primaryBtn, marginTop: '1rem', fontSize: '13px', padding: '0.6rem 1.25rem' }}>
+                <button onClick={() => navigate('/app')} style={{ ...styles.primaryBtn, marginTop: '1rem', fontSize: '13px', padding: '0.6rem 1.25rem' }}>
                   Start an interview
                 </button>
               </div>
@@ -258,7 +258,7 @@ export default function Dashboard() {
             {sessions.length === 0 ? (
               <div style={styles.emptyState}>
                 <p style={styles.muted}>No interviews yet.</p>
-                <button onClick={() => navigate('/')} style={styles.primaryBtn}>
+                <button onClick={() => navigate('/app')} style={styles.primaryBtn}>
                   Start your first interview
                 </button>
               </div>

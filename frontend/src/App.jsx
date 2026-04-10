@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import axios from 'axios'
+import Landing from './pages/Landing'
 
 // Global error boundary — catches any unhandled React crash
 class ErrorBoundary extends Component {
@@ -76,6 +77,16 @@ export default function App() {
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/" element={
+            <PrivateRoute><Setup /></PrivateRoute>
+          }/>
+          <Route path="/interview/:sessionId" element={
+            <PrivateRoute><Interview /></PrivateRoute>
+          }/>
+          <Route path="/dashboard" element={
+            <PrivateRoute><Dashboard /></PrivateRoute>
+          }/>
+          <Route path="/" element={<Landing />} />
+          <Route path="/app" element={
             <PrivateRoute><Setup /></PrivateRoute>
           }/>
           <Route path="/interview/:sessionId" element={

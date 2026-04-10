@@ -25,7 +25,7 @@ export default function Register() {
       const res = await authAPI.register(form)
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
-      navigate('/')
+      navigate('/app')
     } catch (err) {
   if (!err.response || err.code === 'ECONNABORTED') {
     setError('Server is waking up — this takes up to 30 seconds on first visit. Please try again in a moment.')
