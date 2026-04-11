@@ -1,14 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Component } from 'react'
+import axios from 'axios'
+import Landing from './pages/Landing'
 import Setup from './pages/Setup'
 import Interview from './pages/Interview'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import axios from 'axios'
-import Landing from './pages/Landing'
 
-// Global error boundary — catches any unhandled React crash
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -58,6 +57,7 @@ class ErrorBoundary extends Component {
   }
 }
 
+// Wake up Render backend on app load
 const pingBackend = () => {
   const url = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   axios.get(`${url}/health`).catch(() => {})
@@ -74,28 +74,13 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
-          <Route path="/login"    element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/" element={
-            <PrivateRoute><Setup /></PrivateRoute>
-          }/>
-          <Route path="/interview/:sessionId" element={
-            <PrivateRoute><Interview /></PrivateRoute>
-          }/>
-          <Route path="/dashboard" element={
-            <PrivateRoute><Dashboard /></PrivateRoute>
-          }/>
-          <Route path="/" element={<Landing />} />
-          <Route path="/app" element={
-            <PrivateRoute><Setup /></PrivateRoute>
-          }/>
-          <Route path="/interview/:sessionId" element={
-            <PrivateRoute><Interview /></PrivateRoute>
-          }/>
-          <Route path="/dashboard" element={
-            <PrivateRoute><Dashboard /></PrivateRoute>
-          }/>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/"          element={<Landing />} />
+          <Route path="/login"     element={<Login />} />
+          <Route path="/register"  element={<Register />} />
+          <Route path="/app"       element={<PrivateRoute><Setup /></PrivateRoute>} />
+          <Route path="/interview/:sessionId" element={<PrivateRoute><Interview /></PrivateRoute>} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>
