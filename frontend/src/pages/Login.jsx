@@ -123,7 +123,7 @@ const s = {
   bulletText: { color: '#aaa', fontSize: '14px' },
   right: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' },
   card: { width: '100%', maxWidth: '400px' },
-  title: { fontSize: '26px', fontWeight: '700', marginBottom: '0.5rem' },
+  title: { fontSize: '26px', fontWeight: '700', marginBottom: '0.5rem', color: '#6366f1' },
   sub: { color: '#666', fontSize: '14px', marginBottom: '2rem' },
   form: { display: 'flex', flexDirection: 'column', gap: '1.25rem' },
   field: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
