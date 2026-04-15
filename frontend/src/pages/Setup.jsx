@@ -3,14 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { interviewAPI, resumeAPI } from '../services/api'
 
 const ROLES = [
-  'Software Engineer',
-  'Frontend Developer',
-  'Backend Developer',
-  'Full Stack Developer',
-  'Data Scientist',
-  'Machine Learning Engineer',
-  'DevOps Engineer',
-  'Product Manager',
+  'Software Engineer', 'Frontend Developer', 'Backend Developer',
+  'Full Stack Developer', 'Data Scientist', 'Machine Learning Engineer',
+  'DevOps Engineer', 'Product Manager',
 ]
 
 const TOPICS_BY_ROLE = {
@@ -24,7 +19,11 @@ const TOPICS_BY_ROLE = {
   'Product Manager':          ['Product Strategy', 'Metrics', 'Prioritization', 'Stakeholders', 'Behavioural'],
 }
 
-const DIFFICULTIES = ['easy', 'medium', 'hard']
+const DIFFICULTIES = [
+  { id: 'easy',   label: 'Easy',   desc: 'Fundamentals and concepts' },
+  { id: 'medium', label: 'Medium', desc: 'Balanced depth and breadth' },
+  { id: 'hard',   label: 'Hard',   desc: 'Senior-level questions' },
+]
 
 export default function Setup() {
   const navigate = useNavigate()
@@ -42,293 +41,260 @@ export default function Setup() {
 
   const availableTopics = TOPICS_BY_ROLE[role] || []
 
-  const toggleTopic = (topic) => {
-    setTopics(prev =>
-      prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-    )
-  }
+  const toggleTopic = (topic) =>
+    setTopics(prev => prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic])
 
-  const handleRoleChange = (newRole) => {
-    setRole(newRole)
-    setTopics([])
-    setError('')
-  }
+  const handleRoleChange = (newRole) => { setRole(newRole); setTopics([]); setError('') }
 
   const handleResumeUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setResumeError('Only PDF files are supported.')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setResumeError('File too large. Maximum size is 5MB.')
-      return
-    }
-
-    setResume(file)
-    setResumeLoading(true)
-    setResumeError('')
-    setResumeParsed(null)
-
+    if (!file.name.toLowerCase().endsWith('.pdf')) { setResumeError('Only PDF files supported.'); return }
+    if (file.size > 5 * 1024 * 1024) { setResumeError('Max file size is 5MB.'); return }
+    setResume(file); setResumeLoading(true); setResumeError(''); setResumeParsed(null)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await resumeAPI.upload(formData)
+      const fd = new FormData(); fd.append('file', file)
+      const res = await resumeAPI.upload(fd)
       setResumeParsed(res.data.parsed)
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to parse resume. Try again.'
-      setResumeError(msg)
+      setResumeError(err.response?.data?.detail || 'Failed to parse resume.')
       setResume(null)
-    } finally {
-      setResumeLoading(false)
-    }
+    } finally { setResumeLoading(false) }
   }
 
   const handleStart = async () => {
-    if (!role)          { setError('Please select a job role to continue.');        return }
-    if (!topics.length) { setError('Please select at least one topic to practice.'); return }
-
-    setLoading(true)
-    setError('')
-
+    if (!role)         { setError('Please select a job role.'); return }
+    if (!topics.length){ setError('Please select at least one topic.'); return }
+    setLoading(true); setError('')
     try {
       const res = await interviewAPI.start({ role, topics, difficulty })
       navigate(`/interview/${res.data.session_id}`)
     } catch (err) {
-      const status = err.response?.status
-      const detail = err.response?.data?.detail
-
-      if (status === 401) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        navigate('/login')
-        return
-      }
-
-      if (status === 503 || err.code === 'ERR_NETWORK') {
-        setError('Cannot connect to server. Make sure the backend is running.')
-      } else {
-        setError(detail || 'Failed to start interview. Please try again.')
-      }
+      if (err.response?.status === 401) { localStorage.clear(); navigate('/login'); return }
+      setError(err.response?.data?.detail || 'Failed to start. Please try again.')
       setLoading(false)
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    navigate('/login')
-  }
+  const logout = () => { localStorage.clear(); navigate('/login') }
+
+  const canStart = role && topics.length > 0 && !loading
 
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
-        <img src="/logo.png" alt="Qualif-AI" style={{ height: '70px', objectFit: 'contain' }} />
-        <div style={styles.headerRight}>
-          <span style={styles.userName}>{user.name}</span>
-          <button onClick={() => navigate('/dashboard')} style={styles.ghostBtn}>
-            Dashboard
-          </button>
-          <button onClick={logout} style={styles.ghostBtn}>Logout</button>
+    <div style={s.page}>
+      <nav style={s.nav}>
+        <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
+        <div style={s.navRight}>
+          <span style={s.greeting}>Hey, {user.name?.split(' ')[0]} 👋</span>
+          <button onClick={() => navigate('/dashboard')} style={s.navGhost} className="btn-press">Dashboard</button>
+          <button onClick={logout} style={s.navGhost} className="btn-press">Logout</button>
         </div>
-      </div>
+      </nav>
 
-      <div style={styles.content}>
-        <h1 style={styles.title}>Set up your interview</h1>
-        <p style={styles.sub}>Configure your mock interview session</p>
-
-        {/* Role */}
-        <div style={styles.section}>
-          <label style={styles.sectionLabel}>Job role</label>
-          <div style={styles.roleGrid}>
-            {ROLES.map(r => (
-              <button
-                key={r}
-                onClick={() => handleRoleChange(r)}
-                style={{ ...styles.roleBtn, ...(role === r ? styles.roleBtnActive : {}) }}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+      <div style={s.content}>
+        <div style={s.hero}>
+          <h1 style={s.title}>Set up your interview</h1>
+          <p style={s.sub}>Configure your mock session and start practicing in under a minute</p>
         </div>
 
-        {/* Topics */}
-        {role && (
-          <div style={styles.section}>
-            <label style={styles.sectionLabel}>
-              Topics <span style={styles.hint}>(select all that apply)</span>
-            </label>
-            <div style={styles.topicGrid}>
-              {availableTopics.map(t => (
+        <div style={s.card} className="fade-in">
+          {/* Step 1 — Role */}
+          <div style={s.step}>
+            <div style={s.stepHeader}>
+              <span style={s.stepNum}>01</span>
+              <div>
+                <div style={s.stepTitle}>Choose your role</div>
+                <div style={s.stepSub}>What position are you interviewing for?</div>
+              </div>
+            </div>
+            <div style={s.roleGrid}>
+              {ROLES.map(r => (
                 <button
-                  key={t}
-                  onClick={() => toggleTopic(t)}
-                  style={{ ...styles.topicBtn, ...(topics.includes(t) ? styles.topicBtnActive : {}) }}
+                  key={r}
+                  onClick={() => handleRoleChange(r)}
+                  style={{ ...s.roleBtn, ...(role === r ? s.roleBtnActive : {}) }}
+                  className="btn-press"
                 >
-                  {topics.includes(t) ? '✓ ' : ''}{t}
+                  {r}
                 </button>
               ))}
             </div>
           </div>
-        )}
 
-        {/* Resume */}
-        <div style={styles.section}>
-          <label style={styles.sectionLabel}>
-            Resume <span style={styles.hint}>(optional — personalizes your questions)</span>
-          </label>
-
-          <label style={{
-            ...styles.uploadBox,
-            borderColor: resumeLoading ? '#6366f1' : resume ? '#22c55e' : '#333',
-            opacity: resumeLoading ? 0.8 : 1,
-          }}>
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleResumeUpload}
-              disabled={resumeLoading}
-              style={{ display: 'none' }}
-            />
-            {resumeLoading ? (
-              <span style={{ color: '#6366f1' }}>Parsing resume with AI...</span>
-            ) : resume ? (
-              <span style={{ color: '#22c55e' }}>✓ {resume.name}</span>
-            ) : (
-              <span style={{ color: '#555' }}>Click to upload PDF resume (max 5MB)</span>
-            )}
-          </label>
-
-          {resumeError && (
-            <div style={styles.inlineError}>{resumeError}</div>
-          )}
-
-          {resumeParsed && (
-            <div style={styles.resumePreview}>
-              <div style={styles.resumePreviewTitle}>Resume parsed successfully</div>
-              {resumeParsed.target_role && (
-                <div style={styles.resumeRow}>
-                  <span style={styles.resumeLabel}>Role detected</span>
-                  <span style={styles.resumeValue}>{resumeParsed.target_role}</span>
+          {/* Step 2 — Topics */}
+          {role && (
+            <div style={s.step} className="fade-in">
+              <div style={s.stepHeader}>
+                <span style={s.stepNum}>02</span>
+                <div>
+                  <div style={s.stepTitle}>Pick your topics</div>
+                  <div style={s.stepSub}>Select all areas you want to be tested on</div>
                 </div>
-              )}
-              {resumeParsed.years_experience > 0 && (
-                <div style={styles.resumeRow}>
-                  <span style={styles.resumeLabel}>Experience</span>
-                  <span style={styles.resumeValue}>{resumeParsed.years_experience} years</span>
-                </div>
-              )}
-              {resumeParsed.technologies?.length > 0 && (
-                <div style={styles.resumeRow}>
-                  <span style={styles.resumeLabel}>Technologies</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {resumeParsed.technologies.slice(0, 8).map(t => (
-                      <span key={t} style={styles.techTag}>{t}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {resumeParsed.skills?.length > 0 && (
-                <div style={styles.resumeRow}>
-                  <span style={styles.resumeLabel}>Skills</span>
-                  <span style={styles.resumeValue}>
-                    {resumeParsed.skills.slice(0, 6).join(', ')}
-                  </span>
-                </div>
-              )}
+              </div>
+              <div style={s.topicGrid}>
+                {availableTopics.map(t => (
+                  <button
+                    key={t}
+                    onClick={() => toggleTopic(t)}
+                    style={{ ...s.topicBtn, ...(topics.includes(t) ? s.topicBtnActive : {}) }}
+                    className="btn-press"
+                  >
+                    {topics.includes(t) ? '✓ ' : ''}{t}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Difficulty */}
-        <div style={styles.section}>
-          <label style={styles.sectionLabel}>Difficulty</label>
-          <div style={styles.diffRow}>
-            {DIFFICULTIES.map(d => (
-              <button
-                key={d}
-                onClick={() => setDifficulty(d)}
-                style={{ ...styles.diffBtn, ...(difficulty === d ? styles.diffBtnActive[d] : {}) }}
-              >
-                {d.charAt(0).toUpperCase() + d.slice(1)}
-              </button>
-            ))}
+          {/* Step 3 — Resume */}
+          <div style={s.step}>
+            <div style={s.stepHeader}>
+              <span style={s.stepNum}>03</span>
+              <div>
+                <div style={s.stepTitle}>
+                  Upload resume <span style={s.optional}>optional</span>
+                </div>
+                <div style={s.stepSub}>Personalizes questions to your background</div>
+              </div>
+            </div>
+            <label style={{
+              ...s.uploadBox,
+              borderColor: resumeLoading ? '#6366f1' : resume ? '#22c55e' : '#2a2a2a',
+            }}>
+              <input type="file" accept=".pdf" onChange={handleResumeUpload} disabled={resumeLoading} style={{ display: 'none' }} />
+              <span style={{ fontSize: '20px' }}>{resumeLoading ? '⏳' : resume ? '✅' : '📄'}</span>
+              <span style={{ color: resumeLoading ? '#6366f1' : resume ? '#22c55e' : '#555', fontSize: '14px' }}>
+                {resumeLoading ? 'Parsing with AI...' : resume ? resume.name : 'Click to upload PDF (max 5MB)'}
+              </span>
+            </label>
+            {resumeError && <div style={s.inlineError}>{resumeError}</div>}
+            {resumeParsed && (
+              <div style={s.resumePreview} className="fade-in">
+                <div style={s.resumeTitle}>✓ Resume parsed</div>
+                <div style={s.resumeGrid}>
+                  {resumeParsed.target_role && (
+                    <div style={s.resumeItem}><span style={s.resumeKey}>Role</span><span style={s.resumeVal}>{resumeParsed.target_role}</span></div>
+                  )}
+                  {resumeParsed.years_experience > 0 && (
+                    <div style={s.resumeItem}><span style={s.resumeKey}>Experience</span><span style={s.resumeVal}>{resumeParsed.years_experience} years</span></div>
+                  )}
+                </div>
+                {resumeParsed.technologies?.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '0.5rem' }}>
+                    {resumeParsed.technologies.slice(0, 8).map(t => (
+                      <span key={t} style={s.techTag}>{t}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
 
-        {error && (
-          <div style={styles.error}>
-            {error}
+          {/* Step 4 — Difficulty */}
+          <div style={s.step}>
+            <div style={s.stepHeader}>
+              <span style={s.stepNum}>04</span>
+              <div>
+                <div style={s.stepTitle}>Set difficulty</div>
+                <div style={s.stepSub}>How challenging should the questions be?</div>
+              </div>
+            </div>
+            <div style={s.diffGrid}>
+              {DIFFICULTIES.map(d => (
+                <button
+                  key={d.id}
+                  onClick={() => setDifficulty(d.id)}
+                  style={{
+                    ...s.diffBtn,
+                    ...(difficulty === d.id ? s.diffBtnActive[d.id] : {}),
+                  }}
+                  className="btn-press"
+                >
+                  <span style={s.diffLabel}>{d.label}</span>
+                  <span style={s.diffDesc}>{d.desc}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        )}
 
-        <button
-          onClick={handleStart}
-          disabled={loading || !role || topics.length === 0}
-          style={{
-            ...styles.startBtn,
-            opacity: (loading || !role || topics.length === 0) ? 0.5 : 1,
-            cursor:  (loading || !role || topics.length === 0) ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? (
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <span style={styles.btnSpinner} /> Generating your first question...
-            </span>
-          ) : 'Start interview'}
-        </button>
+          {error && <div style={s.error}>{error}</div>}
 
-        {loading && (
-          <p style={styles.loadingNote}>
-            AI is generating a personalized question — this takes 2–4 seconds
-          </p>
-        )}
+          <button
+            onClick={handleStart}
+            disabled={!canStart}
+            style={{ ...s.startBtn, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
+            className="btn-press"
+          >
+            {loading ? (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <span style={s.spinner} /> Generating your first question...
+              </span>
+            ) : (
+              `Start interview →`
+            )}
+          </button>
+
+          {!role && <p style={s.hint}>Select a role above to continue</p>}
+          {role && !topics.length && <p style={s.hint}>Select at least one topic to continue</p>}
+        </div>
       </div>
     </div>
   )
 }
 
-const styles = {
-  page:        { minHeight: '100vh', background: '#0f0f0f', color: '#fff' },
-  header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 2rem', borderBottom: '1px solid #1e1e1e' },
-  logo:        { fontSize: '20px', fontWeight: '700' },
-  ai:          { color: '#6366f1' },
-  headerRight: { display: 'flex', alignItems: 'center', gap: '1rem' },
-  userName:    { color: '#888', fontSize: '14px' },
-  ghostBtn:    { background: 'transparent', border: '1px solid #2a2a2a', color: '#aaa', padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' },
-  content:     { maxWidth: '700px', margin: '0 auto', padding: '3rem 1.5rem' },
-  title:       { fontSize: '28px', fontWeight: '700', marginBottom: '0.5rem' },
-  sub:         { color: '#888', marginBottom: '2.5rem' },
-  section:     { marginBottom: '2rem' },
-  sectionLabel:{ display: 'block', fontSize: '13px', color: '#aaa', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' },
-  hint:        { color: '#555', fontWeight: '400', textTransform: 'none', letterSpacing: 0 },
-  roleGrid:    { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
-  roleBtn:     { background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#ccc', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' },
-  roleBtnActive:{ background: '#1e1b4b', border: '1px solid #6366f1', color: '#a5b4fc' },
-  topicGrid:   { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
-  topicBtn:    { background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#ccc', padding: '0.5rem 0.9rem', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' },
-  topicBtnActive:{ background: '#0f2a1a', border: '1px solid #22c55e', color: '#86efac' },
-  uploadBox:   { display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #333', borderRadius: '8px', padding: '1.25rem', cursor: 'pointer', fontSize: '14px', transition: 'border-color 0.2s' },
-  inlineError: { color: '#ff6b6b', fontSize: '13px', marginTop: '0.5rem' },
-  resumePreview:     { background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '1rem', marginTop: '0.75rem' },
-  resumePreviewTitle:{ fontSize: '12px', color: '#22c55e', fontWeight: '500', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  resumeRow:   { display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.5rem', fontSize: '13px' },
-  resumeLabel: { color: '#555', minWidth: '100px' },
-  resumeValue: { color: '#ccc' },
-  techTag:     { background: '#1e1b4b', border: '1px solid #6366f1', color: '#a5b4fc', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
-  diffRow:     { display: 'flex', gap: '0.75rem' },
-  diffBtn:     { background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#ccc', padding: '0.6rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' },
-  diffBtnActive: {
-    easy:   { background: '#0f2a1a', border: '1px solid #22c55e', color: '#86efac' },
-    medium: { background: '#1a1a0f', border: '1px solid #eab308', color: '#fde047' },
-    hard:   { background: '#2a0f0f', border: '1px solid #ef4444', color: '#fca5a5' },
+const s = {
+  page:     { minHeight: '100vh', background: '#0a0a0a', color: '#fff' },
+  nav:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' },
+  navRight: { display: 'flex', alignItems: 'center', gap: '1rem' },
+  greeting: { color: '#555', fontSize: '14px' },
+  navGhost: { background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
+  content:  { maxWidth: '720px', margin: '0 auto', padding: '3rem 1.5rem' },
+  hero:     { marginBottom: '2rem' },
+  title:    { fontSize: '32px', fontWeight: '700', marginBottom: '0.5rem' },
+  sub:      { color: '#555', fontSize: '15px' },
+  card:     { background: '#0f0f0f', border: '1px solid #1e1e1e', borderRadius: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0' },
+  step:     { paddingBottom: '2rem', marginBottom: '2rem', borderBottom: '1px solid #1a1a1a' },
+  stepHeader: { display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem' },
+  stepNum:  { fontSize: '28px', fontWeight: '700', color: '#6366f1', opacity: 0.6, lineHeight: 1, flexShrink: 0 },
+  stepTitle:{ fontSize: '16px', fontWeight: '600', marginBottom: '2px' },
+  stepSub:  { fontSize: '13px', color: '#555' },
+  optional: { color: '#444', fontWeight: '400', fontSize: '12px', marginLeft: '6px', background: '#1a1a1a', padding: '1px 8px', borderRadius: '10px' },
+  roleGrid: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
+  roleBtn:  { background: '#151515', border: '1px solid #2a2a2a', color: '#888', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', transition: 'all 0.15s' },
+  roleBtnActive: { background: '#1e1b4b', border: '1px solid #6366f1', color: '#a5b4fc' },
+  topicGrid:{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
+  topicBtn: { background: '#151515', border: '1px solid #2a2a2a', color: '#888', padding: '0.5rem 0.9rem', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
+  topicBtnActive: { background: '#0f2a1a', border: '1px solid #22c55e', color: '#86efac' },
+  uploadBox:{ display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px dashed #2a2a2a', borderRadius: '10px', padding: '1rem 1.25rem', cursor: 'pointer', transition: 'border-color 0.2s' },
+  inlineError:{ color: '#ff6b6b', fontSize: '13px', marginTop: '0.5rem' },
+  resumePreview:{ background: '#111', border: '1px solid #1e3a1e', borderRadius: '10px', padding: '1rem', marginTop: '0.75rem' },
+  resumeTitle:{ fontSize: '12px', color: '#22c55e', fontWeight: '500', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  resumeGrid: { display: 'flex', gap: '1.5rem', flexWrap: 'wrap' },
+  resumeItem: { display: 'flex', gap: '0.5rem', fontSize: '13px', alignItems: 'center' },
+  resumeKey:  { color: '#555' },
+  resumeVal:  { color: '#ccc', fontWeight: '500' },
+  techTag:    { background: '#1e1b4b', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
+  diffGrid:   { display: 'flex', gap: '0.75rem' },
+  diffBtn: {
+    flex: 1, display: 'flex', flexDirection: 'column', gap: '4px',
+    background: '#151515', border: '1px solid #2a2a2a',
+    borderRadius: '10px', padding: '0.875rem 1rem', cursor: 'pointer',
+    textAlign: 'left', transition: 'all 0.15s',
   },
-  error:       { background: '#2a1515', border: '1px solid #5a1a1a', color: '#ff6b6b', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', marginBottom: '1rem', lineHeight: '1.5' },
-  startBtn:    { background: '#6366f1', color: '#fff', border: 'none', borderRadius: '10px', padding: '1rem 2rem', fontSize: '16px', fontWeight: '600', width: '100%' },
-  loadingNote: { textAlign: 'center', color: '#555', fontSize: '13px', marginTop: '1rem' },
-  btnSpinner:  { width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' },
+  diffBtnActive: {
+    easy:   { background: '#0f2a1a', border: '1px solid #22c55e' },
+    medium: { background: '#1a1a0f', border: '1px solid #eab308' },
+    hard:   { background: '#2a0f0f', border: '1px solid #ef4444' },
+  },
+  diffLabel: { fontSize: '14px', fontWeight: '600', color: '#fff' },
+  diffDesc:  { fontSize: '12px', color: '#555' },
+  error: { background: '#2a1515', border: '1px solid #5a1a1a', color: '#ff6b6b', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', marginBottom: '1rem', lineHeight: '1.5' },
+  startBtn: {
+    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    color: '#fff', border: 'none', borderRadius: '12px',
+    padding: '1rem 2rem', fontSize: '16px', fontWeight: '600', width: '100%',
+    transition: 'transform 0.1s',
+  },
+  hint:    { textAlign: 'center', color: '#333', fontSize: '13px', marginTop: '0.75rem' },
+  spinner: { width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' },
 }

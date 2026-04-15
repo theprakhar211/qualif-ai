@@ -4,8 +4,8 @@ import { authAPI } from '../services/api'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
+  const [form,    setForm]    = useState({ email: '', password: '' })
+  const [error,   setError]   = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleChange = e => {
@@ -20,159 +20,134 @@ export default function Login() {
     try {
       const res = await authAPI.login(form)
       localStorage.setItem('token', res.data.token)
-      localStorage.setItem('user', JSON.stringify(res.data.user))
+      localStorage.setItem('user',  JSON.stringify(res.data.user))
       navigate('/app')
     } catch (err) {
-  if (!err.response || err.code === 'ECONNABORTED') {
-    setError('Server is waking up — this takes up to 30 seconds on first visit. Please try again in a moment.')
-  } else {
-    setError(err.response?.data?.detail || 'Login failed. Try again.')
-  }
-}
-     finally {
+      if (!err.response || err.code === 'ECONNABORTED') {
+        setError('Server is waking up — this can take 30 seconds on first visit. Please try again.')
+      } else {
+        setError(err.response?.data?.detail || 'Login failed. Try again.')
+      }
+    } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <img src="/logo.png" alt="Qualif-AI" style={{ height: '70px', objectFit: 'contain' }} />
-        <h1 style={styles.title}>Welcome back</h1>
-        <p style={styles.sub}>Sign in to continue your interview prep</p>
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>Email</label>
-            <input
-              style={styles.input}
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
+    <div style={s.page}>
+      <div style={s.left}>
+        <div style={s.leftInner}>
+          <img src="/logo.png" alt="Qualif-AI" style={{ height: '56px', objectFit: 'contain', marginBottom: '2rem' }} />
+          <h2 style={s.tagline}>Practice interviews.<br />Land the job.</h2>
+          <p style={s.taglineSub}>AI-powered mock interviews with real-time voice, adaptive questions, and detailed feedback.</p>
+          <div style={s.bullets}>
+            {['AI-generated questions every session', 'Voice-first interview experience', 'Detailed score breakdown after each session'].map(b => (
+              <div key={b} style={s.bullet}>
+                <span style={s.bulletDot} />
+                <span style={s.bulletText}>{b}</span>
+              </div>
+            ))}
           </div>
+        </div>
+      </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Password</label>
-            <input
-              style={styles.input}
-              type="password"
-              name="password"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+      <div style={s.right}>
+        <div style={s.card} className="scale-in">
+          <h1 style={s.title}>Welcome back</h1>
+          <p style={s.sub}>Sign in to continue your interview prep</p>
 
-          {error && <div style={styles.error}>{error}</div>}
+          <form onSubmit={handleSubmit} style={s.form}>
+            <div style={s.field}>
+              <label style={s.label}>Email</label>
+              <input
+                style={s.input}
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-          <button style={styles.btn} type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
+            <div style={s.field}>
+              <label style={s.label}>Password</label>
+              <input
+                style={s.input}
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-        <p style={styles.footer}>
-          Don't have an account?{' '}
-          <Link to="/register" style={styles.link}>Create one</Link>
-        </p>
+            {error && <div style={s.error}>{error}</div>}
+
+            <button style={{ ...s.btn, opacity: loading ? 0.7 : 1 }} type="submit" disabled={loading} className="btn-press">
+              {loading ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <span style={s.spinner} /> Signing in...
+                </span>
+              ) : 'Sign in'}
+            </button>
+          </form>
+
+          <p style={s.footer}>
+            Don't have an account?{' '}
+            <Link to="/register" style={s.link}>Create one free</Link>
+          </p>
+          <p style={s.footer}>
+            <Link to="/" style={{ ...s.link, color: '#555' }}>← Back to home</Link>
+          </p>
+        </div>
       </div>
     </div>
   )
 }
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '1rem',
-    background: '#0f0f0f',
+const s = {
+  page: { display: 'flex', minHeight: '100vh', background: '#0a0a0a' },
+  left: {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'linear-gradient(135deg, #0f0f1a 0%, #1a0f2e 100%)',
+    padding: '3rem', borderRight: '1px solid #1e1e1e',
   },
-  card: {
-    background: '#1a1a1a',
-    border: '1px solid #2a2a2a',
-    borderRadius: '16px',
-    padding: '2.5rem',
-    width: '100%',
-    maxWidth: '420px',
-  },
-  logo: {
-    fontSize: '24px',
-    fontWeight: '700',
-    marginBottom: '1.5rem',
-    color: '#ffffff',
-  },
-  ai: {
-    color: '#6366f1',
-  },
-  title: {
-    fontSize: '22px',
-    fontWeight: '600',
-    marginBottom: '0.5rem',
-  },
-  sub: {
-    color: '#888',
-    fontSize: '14px',
-    marginBottom: '2rem',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.25rem',
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
-  label: {
-    fontSize: '13px',
-    color: '#aaa',
-    fontWeight: '500',
-  },
+  leftInner: { maxWidth: '380px' },
+  tagline: { fontSize: '32px', fontWeight: '700', lineHeight: '1.2', marginBottom: '1rem', color: '#fff' },
+  taglineSub: { color: '#888', fontSize: '15px', lineHeight: '1.7', marginBottom: '2rem' },
+  bullets: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  bullet: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
+  bulletDot: { width: '6px', height: '6px', borderRadius: '50%', background: '#6366f1', flexShrink: 0 },
+  bulletText: { color: '#aaa', fontSize: '14px' },
+  right: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' },
+  card: { width: '100%', maxWidth: '400px' },
+  title: { fontSize: '26px', fontWeight: '700', marginBottom: '0.5rem' },
+  sub: { color: '#666', fontSize: '14px', marginBottom: '2rem' },
+  form: { display: 'flex', flexDirection: 'column', gap: '1.25rem' },
+  field: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+  label: { fontSize: '13px', color: '#aaa', fontWeight: '500' },
   input: {
-    background: '#0f0f0f',
-    border: '1px solid #2a2a2a',
-    borderRadius: '8px',
-    padding: '0.75rem 1rem',
-    color: '#fff',
-    fontSize: '15px',
-    outline: 'none',
+    background: '#111', border: '1px solid #2a2a2a', borderRadius: '8px',
+    padding: '0.75rem 1rem', color: '#fff', fontSize: '15px', outline: 'none',
     transition: 'border-color 0.2s',
   },
   error: {
-    background: '#2a1515',
-    border: '1px solid #5a1a1a',
-    color: '#ff6b6b',
-    padding: '0.75rem 1rem',
-    borderRadius: '8px',
-    fontSize: '13px',
+    background: '#2a1515', border: '1px solid #5a1a1a', color: '#ff6b6b',
+    padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', lineHeight: '1.5',
   },
   btn: {
-    background: '#6366f1',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '0.875rem',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '0.5rem',
-    transition: 'opacity 0.2s',
+    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    color: '#fff', border: 'none', borderRadius: '8px',
+    padding: '0.875rem', fontSize: '15px', fontWeight: '600',
+    cursor: 'pointer', marginTop: '0.5rem', transition: 'transform 0.1s',
   },
-  footer: {
-    textAlign: 'center',
-    marginTop: '1.5rem',
-    fontSize: '14px',
-    color: '#888',
+  spinner: {
+    width: '14px', height: '14px',
+    border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff',
+    borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite',
   },
-  link: {
-    color: '#6366f1',
-    fontWeight: '500',
-  },
+  footer: { textAlign: 'center', marginTop: '1.25rem', fontSize: '14px', color: '#666' },
+  link: { color: '#6366f1', fontWeight: '500' },
 }
