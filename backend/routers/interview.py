@@ -100,10 +100,11 @@ async def start_interview(
         "created_at":            datetime.utcnow()
     }
 
-    result     = await db_instance.sessions_col.insert_one(session_doc)
+    result = await db_instance.sessions_col.insert_one(session_doc)
     session_id = str(result.inserted_id)
 
-    logger.info(f"Session started: {session_id} | type={interview_type} | phase={phase}")
+    logger.info(
+        f"Session started: {session_id} | type={interview_type} | phase={phase}")
 
     return {
         "session_id":     session_id,
@@ -148,31 +149,35 @@ async def next_question(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    asked                  = session.get("asked_questions", [])
-    answers                = session.get("answers", [])
-    role                   = session["role"]
-    difficulty             = session["difficulty"]
-    topics                 = session.get("topics", ["General"])
-    resume_data            = session.get("resume_data", {})
-    interview_type         = session.get("interview_type", "quick")
-    user_id                = str(current_user["_id"])
+    asked = session.get("asked_questions", [])
+    answers = session.get("answers", [])
+    role = session["role"]
+    difficulty = session["difficulty"]
+    topics = session.get("topics", ["General"])
+    resume_data = session.get("resume_data", {})
+    interview_type = session.get("interview_type", "quick")
+    user_id = str(current_user["_id"])
     session_skills_covered = session.get("session_skills_covered", [])
 
     next_q_number = len(answers) + 2
 
     # Adaptive difficulty for technical phase
     if answers:
-        recent    = answers[-3:]
+        recent = answers[-3:]
         avg_words = sum(a.get("word_count", 50) for a in recent) / len(recent)
-        if avg_words >= 80:    difficulty = "hard"
-        elif avg_words >= 30:  difficulty = "medium"
-        else:                  difficulty = "easy"
+        if avg_words >= 80:
+            difficulty = "hard"
+        elif avg_words >= 30:
+            difficulty = "medium"
+        else:
+            difficulty = "easy"
 
     phase = get_phase(next_q_number, interview_type)
 
-    logger.info(f"Next question: session={session_id} | q={next_q_number} | phase={phase} | type={interview_type}")
+    logger.info(
+        f"Next question: session={session_id} | q={next_q_number} | phase={phase} | type={interview_type}")
 
-    question       = None
+    question = None
     resolved_topic = None
 
     if phase == 'intro':
@@ -189,7 +194,7 @@ async def next_question(
         use_followup = len(answers) > 0 and len(answers) % 2 != 0
 
         if use_followup and answers:
-            last     = answers[-1]
+            last = answers[-1]
             question = await generate_followup(
                 role=role,
                 previous_question=last["question_text"],
@@ -248,22 +253,24 @@ async def submit_answer(
 ):
     """Fast answer storage — no AI call. Full evaluation at end."""
     transcript = data.get("transcript", "").strip()
-    question   = data.get("question_text", "")
-    duration   = data.get("duration_seconds", 0)
+    question = data.get("question_text", "")
+    duration = data.get("duration_seconds", 0)
     input_mode = data.get("input_mode", "voice")
-    phase      = data.get("phase", "technical")
-    topic      = data.get("topic", "")
+    phase = data.get("phase", "technical")
+    topic = data.get("topic", "")
 
     if not transcript:
         raise HTTPException(status_code=400, detail="Empty transcript")
 
-    words      = transcript.split()
+    words = transcript.split()
     word_count = len(words)
-    wpm        = round((word_count / max(duration, 1)) * 60) if input_mode == "voice" else 0
+    wpm = round((word_count / max(duration, 1)) *
+                60) if input_mode == "voice" else 0
 
     filler_list = ["um", "uh", "like", "basically", "literally",
                    "you know", "sort of", "kind of", "actually"]
-    fillers = [w for w in words if w.lower() in filler_list] if input_mode == "voice" else []
+    fillers = [w for w in words if w.lower(
+    ) in filler_list] if input_mode == "voice" else []
 
     answer_entry = {
         "question_text":    question,
@@ -305,25 +312,28 @@ async def evaluate_session(
     if not answers:
         raise HTTPException(status_code=400, detail="No answers to evaluate")
 
-    role           = session.get("role", "Software Engineer")
+    role = session.get("role", "Software Engineer")
     interview_type = session.get("interview_type", "quick")
-    user_id        = str(current_user["_id"])
+    user_id = str(current_user["_id"])
 
-    logger.info(f"Batch evaluating {session_id} — {len(answers)} answers | type={interview_type}")
+    logger.info(
+        f"Batch evaluating {session_id} — {len(answers)} answers | type={interview_type}")
 
     # ── Step 1: LLM batch evaluation (unchanged) ──────────────────────────
     evaluations = await batch_evaluate(role, answers, interview_type)
 
     # ── Step 2: Hybrid scoring pass ───────────────────────────────────────
-    evaluated_answers      = []
-    skill_graph_input      = []
-    total_score            = 0
+    evaluated_answers = []
+    skill_graph_input = []
+    total_score = 0
 
     for i, answer in enumerate(answers):
-        eval_data  = evaluations[i] if i < len(evaluations) else {}
-        phase_str  = answer.get("phase", "technical" if interview_type == "quick" else "technical")
-        phase_type = PHASE_MAP.get(phase_str, PhaseType.QUICK if interview_type == "quick" else PhaseType.TECHNICAL)
-        topic      = answer.get("topic", "")
+        eval_data = evaluations[i] if i < len(evaluations) else {}
+        phase_str = answer.get(
+            "phase", "technical" if interview_type == "quick" else "technical")
+        phase_type = PHASE_MAP.get(
+            phase_str, PhaseType.QUICK if interview_type == "quick" else PhaseType.TECHNICAL)
+        topic = answer.get("topic", "")
 
         # Build llm_result dict matching what run_hybrid_evaluation expects
         llm_result = {
@@ -342,10 +352,11 @@ async def evaluate_session(
             duration_seconds=answer.get("duration_seconds"),
         )
 
-        score         = hybrid.final_score
-        total_score  += score
-        corrected     = hybrid.stt_corrected_transcript
-        was_corrected = corrected.strip().lower() != answer["transcript"].strip().lower()
+        score = hybrid.final_score
+        total_score += score
+        corrected = hybrid.stt_corrected_transcript
+        was_corrected = corrected.strip().lower(
+        ) != answer["transcript"].strip().lower()
 
         enriched_answer = {
             **answer,
@@ -380,24 +391,9 @@ async def evaluate_session(
 
     avg_score = round(total_score / len(answers)) if answers else 0
 
-    # ── Step 3: Answer benchmarking (ideal answer vs candidate) ──────────
-    try:
-        evaluated_answers = await benchmark_session_answers(
-            db=db_instance,
-            evaluated_answers=evaluated_answers,
-            role=role,
-            groq_client=None,   # benchmark uses ask_groq directly
-        )
-    except Exception as e:
-        logger.warning(f"Benchmarking failed (non-fatal): {e}")
-
-    # ── Step 4: Update skill graph ────────────────────────────────────────
-    try:
-        await update_skill_graph_from_session(db_instance, user_id, skill_graph_input)
-    except Exception as e:
-        logger.warning(f"Skill graph update failed (non-fatal): {e}")
-
-    # ── Step 5: Persist ───────────────────────────────────────────────────
+    # ── Step 3: Commit scores immediately ────────────────────────────────
+    # Do this BEFORE benchmarking so a benchmark crash never leaves
+    # overall_score = 0 in the database.
     await db_instance.sessions_col.update_one(
         {"_id": ObjectId(session_id)},
         {"$set": {
@@ -408,8 +404,34 @@ async def evaluate_session(
             "ended_at":      datetime.utcnow()
         }}
     )
+    logger.info(f"Scores committed — {session_id} | avg={avg_score}")
 
-    logger.info(f"Evaluation complete — {session_id} | avg={avg_score}")
+    # ── Step 4: Update skill graph ────────────────────────────────────────
+    try:
+        await update_skill_graph_from_session(db_instance, user_id, skill_graph_input)
+        logger.info(f"Skill graph updated — {session_id}")
+    except Exception as e:
+        logger.warning(f"Skill graph update failed (non-fatal): {e}")
+
+    # ── Step 5: Answer benchmarking — enriches answers with ideal answer ──
+    # Runs after score commit so failure here is truly non-critical.
+    try:
+        enriched = await benchmark_session_answers(
+            db=db_instance,
+            evaluated_answers=evaluated_answers,
+            role=role,
+            groq_client=None,
+        )
+        # Write enriched answers back (adds ideal_answer, comparison, etc.)
+        await db_instance.sessions_col.update_one(
+            {"_id": ObjectId(session_id)},
+            {"$set": {"answers": enriched}}
+        )
+        evaluated_answers = enriched
+        logger.info(f"Benchmarking complete — {session_id}")
+    except Exception as e:
+        logger.warning(
+            f"Benchmarking failed (non-fatal, scores unaffected): {e}")
 
     return {
         "overall_score":  avg_score,
