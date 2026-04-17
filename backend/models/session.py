@@ -23,6 +23,7 @@ class SessionCreate(BaseModel):
     role: str
     topics: List[str] = []
     difficulty: str = "medium"
+    interview_type: str = "quick"
     resume_text: Optional[str] = None
 
 

@@ -12,7 +12,7 @@ async def ask_groq(
     system: str = "",
     model: str = None,
     temperature: float = 0.7,
-    max_tokens: int = 1024      # ← add this parameter
+    max_tokens: int = 1024,
 ) -> str | None:
     if model is None:
         model = settings.GROQ_FAST_MODEL
@@ -26,7 +26,7 @@ async def ask_groq(
             model=model,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens,   # ← use it here
+            max_tokens=max_tokens,
         )
         return response.choices[0].message.content.strip()
 
@@ -37,29 +37,39 @@ async def ask_groq(
 
 async def batch_evaluate(
     role: str,
-    answers: list[dict]
-) -> list[dict]:
+    answers: list,
+    interview_type: str = "quick"
+) -> list:
     """
     Evaluate all interview answers in a single Groq API call.
-    Returns a list of evaluation dicts in the same order as the input.
+    Scoring criteria adapts based on interview_type and phase.
     """
     if not answers:
         return []
 
     answers_text = ""
     for i, a in enumerate(answers, 1):
-        mode = a.get("input_mode", "voice")
-        answers_text += f"""
-Q{i}: {a.get('question_text', '')}
-A{i} ({mode}): {a.get('transcript', '')}
+        phase = a.get("phase", "technical")
+        mode  = a.get("input_mode", "voice")
+        answers_text += f"\nQ{i} [{phase.upper()}]: {a.get('question_text', '')}\nA{i} ({mode}): {a.get('transcript', '')}\n"
+
+    phase_guidance = ""
+    if interview_type == "complete":
+        phase_guidance = """
+Phase-specific scoring:
+- INTRO phase: Score on clarity, self-awareness, and communication. NOT on technical depth.
+- RESUME phase: Score on how well they explained their actual experience. Penalize vague non-answers.
+- TECHNICAL phase: Score strictly on technical accuracy and completeness.
+- BEHAVIOURAL phase: Score on STAR format (Situation, Task, Action, Result). Give partial credit for good structure.
 """
 
-    prompt = f"""You are evaluating a complete mock interview for a {role} position.
-Evaluate ALL {len(answers)} answers below and return a JSON array.
+    prompt = f"""You are evaluating a {'complete structured' if interview_type == 'complete' else 'technical'} mock interview for a {role} position.
+Evaluate ALL questions and answers below.
+{phase_guidance}
 
 {answers_text}
 
-Return ONLY a valid JSON array with exactly {len(answers)} objects in this exact format:
+Return ONLY a valid JSON array with exactly {len(answers)} objects:
 [
   {{
     "question_number": 1,
@@ -67,50 +77,50 @@ Return ONLY a valid JSON array with exactly {len(answers)} objects in this exact
     "reasoning": "<one clear sentence explaining the score>",
     "keywords_mentioned": ["<concept>", "<concept>"],
     "missing_concepts": ["<concept>", "<concept>"],
-    "corrected_transcript": "<fix speech recognition errors only, or return the original if no errors>"
+    "corrected_transcript": "<fix only speech recognition errors, return original if none>"
   }}
 ]
 
-Scoring guide:
-- 0-20:   No answer, "I don't know", completely wrong or irrelevant
-- 21-40:  Very weak, major gaps, mostly incorrect
-- 41-60:  Partial, some correct points but missing key concepts
+General scoring guide:
+- 0-20:   No answer, completely wrong, or irrelevant
+- 21-40:  Very weak, major gaps
+- 41-60:  Partial answer, some correct points but missing key concepts
 - 61-80:  Good, covers main points with minor gaps
-- 81-100: Excellent, comprehensive and accurate
+- 81-100: Excellent, comprehensive and well-structured
 
 Rules:
-- For corrected_transcript: ONLY fix obvious speech recognition errors (e.g. "hazmats" to "hashmaps"). Never change the meaning or add content.
-- For voice answers (marked as "voice"): be slightly more lenient on structure since it was spoken
-- For typed answers (marked as "text"): evaluate strictly on completeness
-- Be strict overall — vague answers score below 50
-- Return ONLY the JSON array, no preamble, no explanation"""
+- corrected_transcript: fix ONLY obvious STT errors like "hazmats"→"hashmaps". Never change meaning.
+- Voice answers: be slightly more lenient with structure
+- Typed answers: evaluate more strictly on completeness
+- Be strict overall. Vague answers score below 50.
+- Return ONLY the JSON array, no other text."""
 
-    logger.info(
-        f"Sending batch evaluation to Groq — {len(answers)} answers, model: {settings.GROQ_SMART_MODEL}")
-    result = await ask_groq(prompt, model=settings.GROQ_SMART_MODEL, temperature=0.2, max_tokens=4096)
+    logger.info(f"Batch evaluating {len(answers)} answers | type={interview_type}")
+    result = await ask_groq(
+        prompt,
+        model=settings.GROQ_SMART_MODEL,
+        temperature=0.2,
+        max_tokens=4096
+    )
 
     if not result:
-        logger.warning(
-            "Groq batch evaluation returned None — using fallback scores")
+        logger.warning("Groq batch evaluation returned None")
         return _fallback_evaluations(answers)
 
     try:
         json_match = re.search(r'\[.*\]', result, re.DOTALL)
         if not json_match:
-            logger.warning(f"No JSON array in Groq response: {result[:300]}")
+            logger.warning(f"No JSON array in response: {result[:300]}")
             return _fallback_evaluations(answers)
 
         parsed = json.loads(json_match.group())
 
         if len(parsed) != len(answers):
-            logger.warning(
-                f"Expected {len(answers)} results, got {len(parsed)} — padding with fallbacks")
+            logger.warning(f"Expected {len(answers)} evals, got {len(parsed)}")
             while len(parsed) < len(answers):
-                parsed.append(_fallback_eval(
-                    len(parsed), answers[len(parsed)]))
+                parsed.append(_fallback_eval(len(parsed) + 1, answers[len(parsed)]))
 
-        logger.info(
-            f"Batch evaluation complete — scores: {[p.get('score') for p in parsed]}")
+        logger.info("Batch evaluation parsed successfully")
         return parsed
 
     except Exception as e:
@@ -121,14 +131,14 @@ Rules:
 
 def _fallback_eval(index: int, answer: dict) -> dict:
     return {
-        "question_number":     index + 1,
+        "question_number":     index,
         "score":               50,
-        "reasoning":           "Evaluation unavailable — please review manually.",
+        "reasoning":           "Evaluation unavailable — Groq API error.",
         "keywords_mentioned":  [],
         "missing_concepts":    [],
         "corrected_transcript": answer.get("transcript", "")
     }
 
 
-def _fallback_evaluations(answers: list[dict]) -> list[dict]:
-    return [_fallback_eval(i, a) for i, a in enumerate(answers)]
+def _fallback_evaluations(answers: list) -> list:
+    return [_fallback_eval(i + 1, a) for i, a in enumerate(answers)]

@@ -14,10 +14,23 @@ const STATES = {
   ERROR:      'error',
 }
 
-// Animated circular score ring
+const PHASE_COLORS = {
+  intro:       '#6366f1',
+  resume:      '#8b5cf6',
+  technical:   '#06b6d4',
+  behavioural: '#22c55e',
+}
+
+const PHASE_LABELS = {
+  intro:       'Introduction',
+  resume:      'Resume Review',
+  technical:   'Technical',
+  behavioural: 'Behavioural',
+}
+
 function ScoreRing({ score, size = 160 }) {
   const [displayed, setDisplayed] = useState(0)
-  const radius      = 54
+  const radius       = 54
   const circumference = 2 * Math.PI * radius
   const color = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444'
 
@@ -39,8 +52,7 @@ function ScoreRing({ score, size = 160 }) {
       <circle cx="60" cy="60" r={radius} fill="none" stroke="#1e1e1e" strokeWidth="8" />
       <circle
         cx="60" cy="60" r={radius} fill="none"
-        stroke={color} strokeWidth="8"
-        strokeLinecap="round"
+        stroke={color} strokeWidth="8" strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={dashoffset}
         transform="rotate(-90 60 60)"
@@ -60,22 +72,24 @@ export default function Interview() {
   const { sessionId } = useParams()
   const navigate      = useNavigate()
 
-  const [state,       setState]       = useState(STATES.LOADING)
-  const [question,    setQuestion]    = useState('')
-  const [difficulty,  setDifficulty]  = useState('medium')
-  const [qNumber,     setQNumber]     = useState(1)
-  const [feedback,    setFeedback]    = useState(null)
-  const [timer,       setTimer]       = useState(0)
-  const [role,        setRole]        = useState('')
-  const [inputMode,   setInputMode]   = useState('voice')
-  const [typedAnswer, setTypedAnswer] = useState('')
-  const [fatalError,  setFatalError]  = useState('')
-  const [retryCount,  setRetryCount]  = useState(0)
-  const [questionKey, setQuestionKey] = useState(0)
+  const [state,         setState]         = useState(STATES.LOADING)
+  const [question,      setQuestion]      = useState('')
+  const [difficulty,    setDifficulty]    = useState('medium')
+  const [qNumber,       setQNumber]       = useState(1)
+  const [phase,         setPhase]         = useState('technical')
+  const [interviewType, setInterviewType] = useState('quick')
+  const [feedback,      setFeedback]      = useState(null)
+  const [timer,         setTimer]         = useState(0)
+  const [role,          setRole]          = useState('')
+  const [inputMode,     setInputMode]     = useState('voice')
+  const [typedAnswer,   setTypedAnswer]   = useState('')
+  const [fatalError,    setFatalError]    = useState('')
+  const [retryCount,    setRetryCount]    = useState(0)
+  const [questionKey,   setQuestionKey]   = useState(0)
 
-  const [evaluating,  setEvaluating]  = useState(false)
-  const [evalResults, setEvalResults] = useState(null)
-  const [evalError,   setEvalError]   = useState(false)
+  const [evaluating,    setEvaluating]    = useState(false)
+  const [evalResults,   setEvalResults]   = useState(null)
+  const [evalError,     setEvalError]     = useState(false)
 
   const timerRef     = useRef(null)
   const startTimeRef = useRef(null)
@@ -96,17 +110,15 @@ export default function Interview() {
     try {
       const res = await interviewAPI.evaluate(sid)
       setEvalResults(res.data)
-    } catch {
-      setEvalError(true)
-    } finally {
-      setEvaluating(false)
-    }
+    } catch { setEvalError(true) }
+    finally { setEvaluating(false) }
   }, [])
 
-  const askQuestion = useCallback((q, diff) => {
+  const askQuestion = useCallback((q, diff, ph) => {
     setQuestion(q)
     setQuestionKey(k => k + 1)
     if (diff) setDifficulty(diff)
+    if (ph)   setPhase(ph)
     setFeedback(null)
     resetTranscript()
     setTypedAnswer('')
@@ -128,7 +140,9 @@ export default function Interview() {
         const session = res.data
         setRole(session.role)
         setDifficulty(session.difficulty)
-        askQuestion(session.current_question, session.difficulty)
+        setInterviewType(session.interview_type || 'quick')
+        setPhase(session.current_phase || 'technical')
+        askQuestion(session.current_question, session.difficulty, session.current_phase)
       } catch (err) {
         setFatalError(err.response?.status === 404
           ? 'Interview session not found.'
@@ -137,7 +151,7 @@ export default function Interview() {
       }
     }
     load()
-  }, [sessionId, askQuestion, navigate])
+  }, [sessionId, askQuestion])
 
   useEffect(() => {
     if (state === STATES.LISTENING) {
@@ -173,29 +187,42 @@ export default function Interview() {
         const next = qNumber + 1
         if (next > MAX_QUESTIONS) { await finishInterview(sessionId); return }
         setQNumber(next)
-        try { const nq = await interviewAPI.nextQuestion(sessionId); askQuestion(nq.data.question, nq.data.difficulty) }
-        catch { setState(STATES.LISTENING) }
+        try {
+          const nq = await interviewAPI.nextQuestion(sessionId)
+          askQuestion(nq.data.question, nq.data.difficulty, nq.data.phase)
+        } catch { setState(STATES.LISTENING) }
       }, 1000)
       return
     }
 
     try {
       const res = await interviewAPI.submitAnswer(sessionId, {
-        question_text: question, transcript: finalTranscript,
-        duration_seconds: duration, role, input_mode: mode,
+        question_text:    question,
+        transcript:       finalTranscript,
+        duration_seconds: duration,
+        role,
+        input_mode:       mode,
+        phase,
       })
+
       setFeedback({ ...res.data, input_mode: mode })
       setTypedAnswer('')
       setRetryCount(0)
 
       const next = qNumber + 1
-      if (next > MAX_QUESTIONS) { setTimeout(() => finishInterview(sessionId), 1200); return }
+      if (next > MAX_QUESTIONS) {
+        setTimeout(() => finishInterview(sessionId), 1200)
+        return
+      }
 
       setQNumber(next)
       setTimeout(async () => {
-        try { const nq = await interviewAPI.nextQuestion(sessionId); askQuestion(nq.data.question, nq.data.difficulty) }
-        catch { setState(STATES.LISTENING) }
+        try {
+          const nq = await interviewAPI.nextQuestion(sessionId)
+          askQuestion(nq.data.question, nq.data.difficulty, nq.data.phase)
+        } catch { setState(STATES.LISTENING) }
       }, 1500)
+
     } catch (err) {
       if (err.response?.status === 401) { navigate('/login'); return }
       setState(STATES.LISTENING)
@@ -212,8 +239,10 @@ export default function Interview() {
     if (next > MAX_QUESTIONS) { setTimeout(() => finishInterview(sessionId), 800); return }
     setQNumber(next)
     setTimeout(async () => {
-      try { const nq = await interviewAPI.nextQuestion(sessionId); askQuestion(nq.data.question, nq.data.difficulty) }
-      catch { setState(STATES.LISTENING) }
+      try {
+        const nq = await interviewAPI.nextQuestion(sessionId)
+        askQuestion(nq.data.question, nq.data.difficulty, nq.data.phase)
+      } catch { setState(STATES.LISTENING) }
     }, 1000)
   }
 
@@ -222,6 +251,10 @@ export default function Interview() {
     await finishInterview(sessionId)
   }
 
+  const phaseColor = PHASE_COLORS[phase] || '#6366f1'
+  const phaseLabel = PHASE_LABELS[phase] || 'Interview'
+
+  // ── Error screen ──
   if (state === STATES.ERROR) return (
     <div style={s.page}>
       <div style={s.centreCard}>
@@ -229,13 +262,14 @@ export default function Interview() {
         <h2 style={{ marginBottom: '0.5rem' }}>Interview interrupted</h2>
         <p style={{ color: '#666', marginBottom: '2rem', lineHeight: '1.6' }}>{fatalError}</p>
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-          <button onClick={() => navigate('/dashboard')} style={s.primaryBtn} className="btn-press">View dashboard</button>
+          <button onClick={() => navigate('/dashboard')} style={s.primaryBtn} className="btn-press">Dashboard</button>
           <button onClick={() => navigate('/app')} style={s.ghostBtn} className="btn-press">New interview</button>
         </div>
       </div>
     </div>
   )
 
+  // ── Done screen ──
   if (state === STATES.DONE) return (
     <div style={s.page}>
       <div style={s.centreCard}>
@@ -254,7 +288,11 @@ export default function Interview() {
             <h2 style={{ marginBottom: '0.5rem' }}>Evaluation failed</h2>
             <p style={{ color: '#666', marginBottom: '1.5rem' }}>Your answers were saved. You can retry or check the dashboard.</p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-              <button onClick={async () => { setEvalError(false); setEvaluating(true); try { const r = await interviewAPI.evaluate(sessionId); setEvalResults(r.data) } catch { setEvalError(true) } finally { setEvaluating(false) } }} style={s.primaryBtn} className="btn-press">Retry</button>
+              <button onClick={async () => {
+                setEvalError(false); setEvaluating(true)
+                try { const r = await interviewAPI.evaluate(sessionId); setEvalResults(r.data) }
+                catch { setEvalError(true) } finally { setEvaluating(false) }
+              }} style={s.primaryBtn} className="btn-press">Retry</button>
               <button onClick={() => navigate('/dashboard')} style={s.ghostBtn} className="btn-press">Dashboard</button>
             </div>
           </>
@@ -262,14 +300,14 @@ export default function Interview() {
         {!evaluating && evalResults && (
           <div className="fade-in">
             <ScoreRing score={evalResults.overall_score} />
-            <h2 style={{ margin: '1.5rem 0 0.5rem', fontSize: '22px' }}>Interview complete</h2>
-            <p style={{ color: '#666', marginBottom: '0.5rem', fontSize: '14px' }}>
-              {evalResults.answers?.length} questions evaluated by AI
+            <h2 style={{ margin: '1.5rem 0 0.25rem', fontSize: '22px' }}>Interview complete</h2>
+            <p style={{ color: '#555', marginBottom: '0.5rem', fontSize: '13px' }}>
+              {interviewType === 'complete' ? 'Complete Interview' : 'Quick Practice'} · {evalResults.answers?.length} questions
             </p>
-            <p style={{ color: '#555', marginBottom: '2rem', fontSize: '13px' }}>
-              {evalResults.overall_score >= 70 ? 'Great performance! Check the dashboard for detailed feedback.' :
-               evalResults.overall_score >= 40 ? 'Good effort. Review the missed concepts to improve.' :
-               'Keep practicing. The dashboard shows exactly what to focus on.'}
+            <p style={{ color: '#666', marginBottom: '2rem', fontSize: '14px', lineHeight: '1.6' }}>
+              {evalResults.overall_score >= 70 ? '🎉 Great performance! Check the dashboard for detailed feedback.' :
+               evalResults.overall_score >= 40 ? '📈 Good effort. Review the missed concepts to improve.' :
+               '💪 Keep practicing. The dashboard shows exactly what to focus on.'}
             </p>
             <button onClick={() => navigate('/dashboard')} style={s.primaryBtn} className="btn-press">
               View full results →
@@ -280,6 +318,7 @@ export default function Interview() {
     </div>
   )
 
+  // ── Main interview screen ──
   const progressPct = ((qNumber - 1) / MAX_QUESTIONS) * 100
 
   return (
@@ -287,28 +326,64 @@ export default function Interview() {
       <div style={s.header}>
         <img src="/logo.png" alt="Qualif-AI" style={{ height: '36px', objectFit: 'contain' }} />
         <div style={s.headerMeta}>
-          <span style={diffBadge(difficulty)}>{difficulty}</span>
+          {/* Phase badge */}
+          <span style={{ ...s.phaseBadge, background: `${phaseColor}18`, color: phaseColor, borderColor: `${phaseColor}40` }}>
+            {phaseLabel}
+          </span>
           <span style={s.qCount}>Q {qNumber} / {MAX_QUESTIONS}</span>
           <button onClick={handleEndEarly} style={s.endBtn} className="btn-press">End</button>
         </div>
       </div>
 
-      {/* Animated progress bar */}
+      {/* Progress bar */}
       <div style={s.progressBg}>
-        <div style={{ ...s.progressFill, width: `${progressPct}%` }}/>
+        <div style={{ ...s.progressFill, width: `${progressPct}%`, background: `linear-gradient(90deg, ${phaseColor}, ${phaseColor}aa)` }}/>
       </div>
 
+      {/* Phase strip for complete interviews */}
+      {interviewType === 'complete' && (
+        <div style={s.phaseStrip}>
+          {[
+            { id: 'intro',       label: 'Intro',       qs: [1,2] },
+            { id: 'resume',      label: 'Resume',      qs: [3,4] },
+            { id: 'technical',   label: 'Technical',   qs: [5,6,7] },
+            { id: 'behavioural', label: 'Behavioural', qs: [8] },
+          ].map((p, i) => {
+            const isActive = p.id === phase
+            const isDone   = p.qs[p.qs.length - 1] < qNumber
+            const color    = PHASE_COLORS[p.id]
+            return (
+              <div key={p.id} style={s.phaseStripItem}>
+                {i > 0 && <div style={{ ...s.phaseConnector, background: isDone ? color : '#2a2a2a' }} />}
+                <div style={{
+                  ...s.phaseStripDot,
+                  background:   isDone ? color : isActive ? color : '#2a2a2a',
+                  borderColor:  isActive ? color : 'transparent',
+                  boxShadow:    isActive ? `0 0 8px ${color}60` : 'none',
+                }}/>
+                <span style={{
+                  ...s.phaseStripLabel,
+                  color: isDone || isActive ? '#ccc' : '#444',
+                }}>{p.label}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       <div style={s.content}>
-        {/* Question card with fade-in animation */}
+        {/* Question card */}
         <div key={questionKey} style={s.questionCard} className="fade-in">
           <div style={s.questionMeta}>
             <span style={s.questionNum}>Question {qNumber}</span>
-            <span style={{ ...s.questionRole, ...diffBadge(difficulty) }}>{difficulty}</span>
+            <span style={{ ...s.phasePill, color: phaseColor, borderColor: `${phaseColor}40`, background: `${phaseColor}10` }}>
+              {phaseLabel}
+            </span>
           </div>
           {state === STATES.LOADING ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div className="skeleton" style={{ height: '24px', width: '100%' }} />
-              <div className="skeleton" style={{ height: '24px', width: '70%' }} />
+              <div className="skeleton" style={{ height: '24px', width: '65%' }} />
             </div>
           ) : (
             <p style={s.questionText}>{question}</p>
@@ -319,10 +394,9 @@ export default function Interview() {
         <div style={s.stateRow}>
           <div style={{
             ...s.stateDot,
-            background:
-              state === STATES.LISTENING  ? '#22c55e' :
-              state === STATES.SPEAKING   ? '#6366f1' :
-              state === STATES.PROCESSING ? '#eab308' : '#555',
+            background: state === STATES.LISTENING  ? '#22c55e' :
+                        state === STATES.SPEAKING   ? phaseColor :
+                        state === STATES.PROCESSING ? '#eab308' : '#555',
             animation: state === STATES.LISTENING ? 'micPulse 1.5s ease-in-out infinite' : 'none',
           }}/>
           <span style={s.stateLabel}>
@@ -374,19 +448,14 @@ export default function Interview() {
             )}
 
             {inputMode === 'text' && (
-              <div>
-                <div style={{ fontSize: '11px', color: '#555', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Your answer — confidence analysis not available for typed answers
-                </div>
-                <textarea
-                  value={typedAnswer}
-                  onChange={e => setTypedAnswer(e.target.value)}
-                  placeholder="Type your answer here..."
-                  style={s.textArea}
-                  rows={6}
-                  autoFocus
-                />
-              </div>
+              <textarea
+                value={typedAnswer}
+                onChange={e => setTypedAnswer(e.target.value)}
+                placeholder="Type your answer here..."
+                style={s.textArea}
+                rows={6}
+                autoFocus
+              />
             )}
 
             {sttError && sttError !== 'no-speech' && inputMode === 'voice' && (
@@ -448,50 +517,53 @@ export default function Interview() {
   )
 }
 
-const diffBadge = (d) => ({
-  fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '500',
-  background: d === 'easy' ? '#0f2a1a' : d === 'hard' ? '#2a0f0f' : '#1a1a0f',
-  color:      d === 'easy' ? '#86efac' : d === 'hard' ? '#fca5a5' : '#fde047',
-  border:     `1px solid ${d === 'easy' ? '#22c55e' : d === 'hard' ? '#ef4444' : '#eab308'}`,
-})
-
 const s = {
-  page:           { minHeight: '100vh', background: '#0a0a0a', color: '#fff' },
-  header:         { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' },
-  headerMeta:     { display: 'flex', alignItems: 'center', gap: '1rem' },
-  qCount:         { color: '#555', fontSize: '13px', fontWeight: '500' },
-  endBtn:         { background: 'transparent', border: '1px solid #2a2a2a', color: '#666', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
-  progressBg:     { height: '3px', background: '#1a1a1a' },
-  progressFill:   { height: '100%', background: 'linear-gradient(90deg, #6366f1, #a855f7)', transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' },
-  content:        { maxWidth: '680px', margin: '0 auto', padding: '2.5rem 1.5rem' },
-  questionCard:   { background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '2rem', marginBottom: '1.5rem' },
-  questionMeta:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' },
-  questionNum:    { fontSize: '12px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '500' },
-  questionRole:   {},
-  questionText:   { fontSize: '20px', lineHeight: '1.6', color: '#fff', fontWeight: '500' },
-  stateRow:       { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' },
-  stateDot:       { width: '8px', height: '8px', borderRadius: '50%', transition: 'background 0.3s', flexShrink: 0 },
-  stateLabel:     { fontSize: '13px', color: '#666' },
-  warningBox:     { background: '#2a1f00', border: '1px solid #5a4500', color: '#fbbf24', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', marginBottom: '1rem' },
-  modeRow:        { display: 'flex', gap: '0.5rem', marginBottom: '1rem' },
-  modeBtn:        { background: '#111', border: '1px solid #2a2a2a', color: '#666', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
-  modeBtnActive:  { border: '1px solid #6366f1', color: '#a5b4fc', background: '#1e1b4b' },
-  transcriptBox:  { background: '#111', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '1.25rem', marginBottom: '0.75rem', minHeight: '100px', transition: 'border-color 0.3s, box-shadow 0.3s' },
+  page:        { minHeight: '100vh', background: '#0a0a0a', color: '#fff' },
+  header:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #1a1a1a' },
+  headerMeta:  { display: 'flex', alignItems: 'center', gap: '1rem' },
+  phaseBadge:  { fontSize: '12px', padding: '3px 10px', borderRadius: '20px', fontWeight: '500', border: '1px solid' },
+  qCount:      { color: '#555', fontSize: '13px', fontWeight: '500' },
+  endBtn:      { background: 'transparent', border: '1px solid #2a2a2a', color: '#666', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
+  progressBg:  { height: '3px', background: '#1a1a1a' },
+  progressFill:{ height: '100%', transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' },
+
+  // Phase strip (complete interview only)
+  phaseStrip:      { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.75rem 2rem', borderBottom: '1px solid #1a1a1a', gap: '0', background: '#080808' },
+  phaseStripItem:  { display: 'flex', alignItems: 'center', gap: '6px' },
+  phaseConnector:  { width: '32px', height: '2px', margin: '0 4px' },
+  phaseStripDot:   { width: '10px', height: '10px', borderRadius: '50%', border: '2px solid transparent', transition: 'all 0.3s', flexShrink: 0 },
+  phaseStripLabel: { fontSize: '12px', fontWeight: '500', transition: 'color 0.3s' },
+
+  content:      { maxWidth: '680px', margin: '0 auto', padding: '2.5rem 1.5rem' },
+  questionCard: { background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '2rem', marginBottom: '1.5rem' },
+  questionMeta: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' },
+  questionNum:  { fontSize: '12px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '500' },
+  phasePill:    { fontSize: '11px', padding: '2px 8px', borderRadius: '10px', border: '1px solid', fontWeight: '500' },
+  questionText: { fontSize: '20px', lineHeight: '1.6', color: '#fff', fontWeight: '500' },
+
+  stateRow:    { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' },
+  stateDot:    { width: '8px', height: '8px', borderRadius: '50%', transition: 'background 0.3s', flexShrink: 0 },
+  stateLabel:  { fontSize: '13px', color: '#666' },
+  warningBox:  { background: '#2a1f00', border: '1px solid #5a4500', color: '#fbbf24', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', marginBottom: '1rem' },
+  modeRow:     { display: 'flex', gap: '0.5rem', marginBottom: '1rem' },
+  modeBtn:     { background: '#111', border: '1px solid #2a2a2a', color: '#666', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
+  modeBtnActive:{ border: '1px solid #6366f1', color: '#a5b4fc', background: '#1e1b4b' },
+  transcriptBox:{ background: '#111', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '1.25rem', marginBottom: '0.75rem', minHeight: '100px', transition: 'border-color 0.3s, box-shadow 0.3s' },
   transcriptLabel:{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' },
   transcriptText: { fontSize: '15px', lineHeight: '1.7', color: '#ddd' },
-  interim:        { color: '#555', fontStyle: 'italic' },
-  placeholder:    { color: '#333', fontStyle: 'italic' },
-  textArea:       { background: '#111', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '1rem', color: '#ddd', fontSize: '15px', width: '100%', resize: 'vertical', outline: 'none', lineHeight: '1.6', marginBottom: '0.75rem', boxSizing: 'border-box' },
-  errorBox:       { background: '#2a1515', border: '1px solid #5a1a1a', color: '#ff6b6b', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', marginBottom: '0.75rem' },
-  feedbackBox:    { background: '#111', border: '1px solid #1e3a1e', borderRadius: '12px', padding: '1.25rem', marginTop: '1rem' },
-  feedbackRow:    { display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '14px' },
-  feedbackLabel:  { color: '#666' },
-  feedbackValue:  { color: '#fff', fontWeight: '500' },
-  feedbackNote:   { color: '#444', fontSize: '12px', marginTop: '0.75rem' },
-  submitBtn:      { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '10px', padding: '1rem 2rem', fontSize: '16px', fontWeight: '600', flex: 1, transition: 'transform 0.1s' },
-  skipBtn:        { background: 'transparent', color: '#555', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '1rem 1.5rem', fontSize: '15px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' },
-  centreCard:     { maxWidth: '420px', margin: '12vh auto', background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #2a2a2a', borderRadius: '20px', padding: '3rem', textAlign: 'center' },
-  primaryBtn:     { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.875rem 1.5rem', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'transform 0.1s' },
-  ghostBtn:       { background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.875rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', transition: 'all 0.15s' },
-  spinner:        { width: '44px', height: '44px', border: '3px solid #2a2a2a', borderTop: '3px solid #6366f1', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.9s linear infinite' },
+  interim:     { color: '#555', fontStyle: 'italic' },
+  placeholder: { color: '#333', fontStyle: 'italic' },
+  textArea:    { background: '#111', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '1rem', color: '#ddd', fontSize: '15px', width: '100%', resize: 'vertical', outline: 'none', lineHeight: '1.6', marginBottom: '0.75rem', boxSizing: 'border-box' },
+  errorBox:    { background: '#2a1515', border: '1px solid #5a1a1a', color: '#ff6b6b', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', marginBottom: '0.75rem' },
+  feedbackBox: { background: '#111', border: '1px solid #1e3a1e', borderRadius: '12px', padding: '1.25rem', marginTop: '1rem' },
+  feedbackRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '14px' },
+  feedbackLabel:{ color: '#666' },
+  feedbackValue:{ color: '#fff', fontWeight: '500' },
+  feedbackNote: { color: '#444', fontSize: '12px', marginTop: '0.75rem' },
+  submitBtn:   { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '10px', padding: '1rem 2rem', fontSize: '16px', fontWeight: '600', flex: 1, transition: 'transform 0.1s' },
+  skipBtn:     { background: 'transparent', color: '#555', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '1rem 1.5rem', fontSize: '15px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' },
+  centreCard:  { maxWidth: '420px', margin: '12vh auto', background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #2a2a2a', borderRadius: '20px', padding: '3rem', textAlign: 'center' },
+  primaryBtn:  { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.875rem 1.5rem', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'transform 0.1s' },
+  ghostBtn:    { background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.875rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', transition: 'all 0.15s' },
+  spinner:     { width: '44px', height: '44px', border: '3px solid #2a2a2a', borderTop: '3px solid #6366f1', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.9s linear infinite' },
 }
