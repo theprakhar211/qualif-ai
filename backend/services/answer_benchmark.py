@@ -7,12 +7,11 @@ Ideal answers are generated once by Groq and stored in MongoDB.
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Optional
-from services.groq_service import ask_groq
+from loguru import logger
 
-# ---------------------------------------------------------------------------
-# Ideal answer generation (one-time per question fingerprint)
-# ---------------------------------------------------------------------------
+# Import directly — no injected client needed
+from services.groq_service import ask_groq, ask_groq_smart
+
 
 IDEAL_ANSWER_PROMPT = """You are a senior software engineer and technical interviewer.
 
@@ -25,93 +24,19 @@ Difficulty: {difficulty}
 
 Generate an ideal interview answer. Return ONLY a JSON object with these exact keys:
 {{
-  "ideal_answer": "<2–4 paragraph ideal answer a strong candidate would give>",
-  "key_concepts": ["concept1", "concept2", ...],  // 4–8 must-cover concepts
+  "ideal_answer": "<2-4 paragraph ideal answer a strong candidate would give>",
+  "key_concepts": ["concept1", "concept2"],
   "scoring_rubric": {{
-    "excellent": "<what an 90–100 answer includes>",
-    "good": "<what a 70–89 answer includes>",
-    "fair": "<what a 50–69 answer includes>",
-    "poor": "<what a 0–49 answer looks like>"
+    "excellent": "<what a 90-100 answer includes>",
+    "good": "<what a 70-89 answer includes>",
+    "fair": "<what a 50-69 answer includes>",
+    "poor": "<what a 0-49 answer looks like>"
   }},
-  "common_mistakes": ["mistake1", "mistake2"]  // top 3 mistakes candidates make
+  "common_mistakes": ["mistake1", "mistake2"]
 }}
 
-Return only valid JSON, no markdown, no preamble."""
+Return only valid JSON, no markdown backticks, no preamble."""
 
-
-def question_fingerprint(question_text: str, role: str, difficulty: str) -> str:
-    """Stable hash for cache key."""
-    raw = f"{question_text.lower().strip()}|{role.lower()}|{difficulty.lower()}"
-    return hashlib.sha256(raw.encode()).hexdigest()[:16]
-
-
-async def get_or_generate_ideal_answer(
-    db,
-    question_text: str,
-    role: str = "software engineer",
-    topic: str = "",
-    difficulty: str = "medium",
-    groq_client=None,
-) -> dict:
-    """
-    Returns cached ideal answer if present, otherwise generates and caches it.
-    Collection: ideal_answers  (indexed on fingerprint)
-    """
-    fp = question_fingerprint(question_text, role, difficulty)
-
-    # 1. Try cache
-    cached = await db.ideal_answers.find_one({"fingerprint": fp})
-    if cached:
-        return {
-            "ideal_answer": cached["ideal_answer"],
-            "key_concepts": cached["key_concepts"],
-            "scoring_rubric": cached["scoring_rubric"],
-            "common_mistakes": cached["common_mistakes"],
-            "cached": True,
-        }
-
-    # 2. Generate via Groq
-    if groq_client is None:
-        raise RuntimeError("groq_client required for ideal answer generation")
-
-    prompt = IDEAL_ANSWER_PROMPT.format(
-        question=question_text,
-        role=role,
-        topic=topic,
-        difficulty=difficulty,
-    )
-
-    # use 70B for ideal answers
-    raw = await ask_groq(prompt, model="smart")
-    try:
-        clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-        data = json.loads(clean)
-    except Exception:
-        # Fallback — return empty structure so the app doesn't crash
-        data = {
-            "ideal_answer": raw,
-            "key_concepts": [],
-            "scoring_rubric": {"excellent": "", "good": "", "fair": "", "poor": ""},
-            "common_mistakes": [],
-        }
-
-    # 3. Cache
-    await db.ideal_answers.insert_one({
-        "fingerprint": fp,
-        "question_text": question_text,
-        "role": role,
-        "topic": topic,
-        "difficulty": difficulty,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        **data,
-    })
-
-    return {**data, "cached": False}
-
-
-# ---------------------------------------------------------------------------
-# Answer comparison / benchmarking
-# ---------------------------------------------------------------------------
 
 COMPARISON_PROMPT = """You are an expert technical interviewer.
 
@@ -128,93 +53,184 @@ Key concepts that should be covered: {key_concepts}
 
 Return ONLY a JSON object:
 {{
-  "covered_concepts": ["concept1", ...],   // concepts the candidate actually covered
-  "missing_concepts": ["concept2", ...],   // concepts from key_concepts not covered
-  "extra_concepts": ["concept3", ...],     // good additions the candidate mentioned
-  "comparison_feedback": "<2–3 sentence personalised gap analysis>",
+  "covered_concepts": ["concept1"],
+  "missing_concepts": ["concept2"],
+  "extra_concepts": ["concept3"],
+  "comparison_feedback": "<2-3 sentence personalised gap analysis>",
   "improvement_tip": "<one specific, actionable tip>",
-  "similarity_score": <0–100>              // how close to ideal (not the quality score)
+  "similarity_score": <0-100>
 }}
-Return only valid JSON."""
+Return only valid JSON, no markdown backticks."""
+
+
+def question_fingerprint(question_text: str, role: str, difficulty: str) -> str:
+    """Stable SHA-256 hash used as cache key."""
+    raw = f"{question_text.lower().strip()}|{role.lower()}|{difficulty.lower()}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _parse_json_response(raw: str) -> dict | None:
+    """Safely parse a JSON response, stripping markdown fences if present."""
+    if not raw:
+        return None
+    clean = raw.strip()
+    if clean.startswith("```"):
+        parts = clean.split("```")
+        clean = next((p for p in parts if p.strip()
+                     and not p.lower().startswith("json")), parts[0])
+    try:
+        return json.loads(clean.strip())
+    except Exception:
+        import re
+        m = re.search(r'\{.*\}', clean, re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group())
+            except Exception:
+                pass
+    return None
+
+
+async def get_or_generate_ideal_answer(
+    db,
+    question_text: str,
+    role: str = "software engineer",
+    topic: str = "",
+    difficulty: str = "medium",
+) -> dict:
+    """
+    Returns cached ideal answer if present, otherwise generates via Groq 70B and caches.
+    Collection: ideal_answers (indexed on fingerprint — created in database.py)
+    """
+    fp = question_fingerprint(question_text, role, difficulty)
+
+    # 1. Cache hit
+    try:
+        cached = await db.ideal_answers_col.find_one({"fingerprint": fp})
+        if cached:
+            logger.info(f"Ideal answer cache hit: {fp}")
+            return {
+                "ideal_answer":    cached["ideal_answer"],
+                "key_concepts":    cached.get("key_concepts", []),
+                "scoring_rubric":  cached.get("scoring_rubric", {}),
+                "common_mistakes": cached.get("common_mistakes", []),
+                "cached": True,
+            }
+    except Exception as e:
+        logger.warning(f"Cache lookup failed: {e}")
+
+    # 2. Generate via Groq 70B
+    prompt = IDEAL_ANSWER_PROMPT.format(
+        question=question_text,
+        role=role,
+        topic=topic or "general",
+        difficulty=difficulty,
+    )
+
+    raw = await ask_groq_smart(prompt, temperature=0.3, max_tokens=2048)
+    data = _parse_json_response(raw)
+
+    if not data:
+        logger.warning(
+            f"Could not parse ideal answer for: {question_text[:60]}")
+        data = {
+            "ideal_answer":    raw or "",
+            "key_concepts":    [],
+            "scoring_rubric":  {"excellent": "", "good": "", "fair": "", "poor": ""},
+            "common_mistakes": [],
+        }
+
+    # 3. Cache it
+    try:
+        await db.ideal_answers_col.insert_one({
+            "fingerprint":   fp,
+            "question_text": question_text,
+            "role":          role,
+            "topic":         topic,
+            "difficulty":    difficulty,
+            "created_at":    datetime.now(timezone.utc).isoformat(),
+            **data,
+        })
+    except Exception as e:
+        logger.warning(f"Cache write failed (non-fatal): {e}")
+
+    return {**data, "cached": False}
 
 
 async def benchmark_answer(
     question_text: str,
     candidate_answer: str,
     ideal_data: dict,
-    groq_client,
 ) -> dict:
     """
-    Compare candidate answer against ideal using Groq.
-    Returns structured comparison.
+    Compare candidate answer against ideal using Groq 8B (fast).
     """
     prompt = COMPARISON_PROMPT.format(
         question=question_text,
         candidate_answer=candidate_answer,
-        ideal_answer=ideal_data["ideal_answer"],
+        ideal_answer=ideal_data.get("ideal_answer", ""),
         key_concepts=", ".join(ideal_data.get("key_concepts", [])),
     )
 
-    # 8B is fine for comparison
-    raw = await ask_groq(prompt, model="fast")
-    try:
-        clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-        return json.loads(clean)
-    except Exception:
+    raw = await ask_groq(prompt, model=None, temperature=0.2, max_tokens=1024)
+    parsed = _parse_json_response(raw)
+
+    if not parsed:
+        logger.warning(
+            f"Could not parse benchmark comparison for: {question_text[:60]}")
         return {
-            "covered_concepts": [],
-            "missing_concepts": ideal_data.get("key_concepts", []),
-            "extra_concepts": [],
-            "comparison_feedback": raw,
-            "improvement_tip": "",
-            "similarity_score": 0,
+            "covered_concepts":    [],
+            "missing_concepts":    ideal_data.get("key_concepts", []),
+            "extra_concepts":      [],
+            "comparison_feedback": raw or "",
+            "improvement_tip":     "",
+            "similarity_score":    0,
         }
 
+    return parsed
 
-# ---------------------------------------------------------------------------
-# Convenience: run full benchmark for a completed session
-# ---------------------------------------------------------------------------
 
 async def benchmark_session_answers(
     db,
-    evaluated_answers: list[dict],  # from batch_evaluate output
+    evaluated_answers: list[dict],
     role: str,
-    groq_client,
+    groq_client=None,   # kept for signature compatibility — not used
 ) -> list[dict]:
     """
-    For each answer in a completed session:
-    1. Get/generate ideal answer
-    2. Run comparison
-    3. Attach results
-
-    Returns enriched answer list.
+    For each answer: get/generate ideal answer, run comparison, attach results.
+    Non-fatal: if anything fails the answer is returned unchanged.
     """
     enriched = []
     for ans in evaluated_answers:
         q_text = ans.get("question_text", "")
-        a_text = ans.get("stt_corrected_transcript") or ans.get(
-            "answer_text", "")
+        a_text = (ans.get("stt_corrected_transcript")
+                  or ans.get("corrected_transcript")
+                  or ans.get("transcript", ""))
         topic = ans.get("topic", "")
         difficulty = ans.get("difficulty", "medium")
 
-        ideal = await get_or_generate_ideal_answer(
-            db,
-            question_text=q_text,
-            role=role,
-            topic=topic,
-            difficulty=difficulty,
-            groq_client=groq_client,
-        )
+        try:
+            ideal = await get_or_generate_ideal_answer(
+                db,
+                question_text=q_text,
+                role=role,
+                topic=topic,
+                difficulty=difficulty,
+            )
 
-        comparison = await benchmark_answer(q_text, a_text, ideal, groq_client)
+            comparison = await benchmark_answer(q_text, a_text, ideal)
 
-        enriched.append({
-            **ans,
-            "ideal_answer": ideal["ideal_answer"],
-            "key_concepts": ideal["key_concepts"],
-            "scoring_rubric": ideal["scoring_rubric"],
-            "common_mistakes": ideal.get("common_mistakes", []),
-            "comparison": comparison,
-        })
+            enriched.append({
+                **ans,
+                "ideal_answer":    ideal.get("ideal_answer", ""),
+                "key_concepts":    ideal.get("key_concepts", []),
+                "scoring_rubric":  ideal.get("scoring_rubric", {}),
+                "common_mistakes": ideal.get("common_mistakes", []),
+                "comparison":      comparison,
+            })
+
+        except Exception as e:
+            logger.warning(f"Benchmark failed for Q '{q_text[:40]}': {e}")
+            enriched.append(ans)
 
     return enriched

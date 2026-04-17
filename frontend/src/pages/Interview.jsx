@@ -203,6 +203,7 @@ export default function Interview() {
         role,
         input_mode:       mode,
         phase,
+        topic:            phase === 'technical' ? difficulty : phase,
       })
 
       setFeedback({ ...res.data, input_mode: mode })

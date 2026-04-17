@@ -35,6 +35,22 @@ async def ask_groq(
         return None
 
 
+async def ask_groq_smart(
+    prompt: str,
+    system: str = "",
+    temperature: float = 0.3,
+    max_tokens: int = 2048,
+) -> str | None:
+    """Convenience wrapper that always uses the smart (70B) model."""
+    return await ask_groq(
+        prompt,
+        system=system,
+        model=settings.GROQ_SMART_MODEL,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+
+
 async def batch_evaluate(
     role: str,
     answers: list,
@@ -43,6 +59,10 @@ async def batch_evaluate(
     """
     Evaluate all interview answers in a single Groq API call.
     Scoring criteria adapts based on interview_type and phase.
+
+    Returns list of dicts with keys:
+      question_number, score, reasoning,
+      keywords_mentioned, missing_concepts, corrected_transcript
     """
     if not answers:
         return []
@@ -50,7 +70,7 @@ async def batch_evaluate(
     answers_text = ""
     for i, a in enumerate(answers, 1):
         phase = a.get("phase", "technical")
-        mode  = a.get("input_mode", "voice")
+        mode = a.get("input_mode", "voice")
         answers_text += f"\nQ{i} [{phase.upper()}]: {a.get('question_text', '')}\nA{i} ({mode}): {a.get('transcript', '')}\n"
 
     phase_guidance = ""
@@ -89,13 +109,14 @@ General scoring guide:
 - 81-100: Excellent, comprehensive and well-structured
 
 Rules:
-- corrected_transcript: fix ONLY obvious STT errors like "hazmats"→"hashmaps". Never change meaning.
+- corrected_transcript: fix ONLY obvious STT errors like "hazmaps"→"hashmaps". Never change meaning.
 - Voice answers: be slightly more lenient with structure
 - Typed answers: evaluate more strictly on completeness
 - Be strict overall. Vague answers score below 50.
 - Return ONLY the JSON array, no other text."""
 
-    logger.info(f"Batch evaluating {len(answers)} answers | type={interview_type}")
+    logger.info(
+        f"Batch evaluating {len(answers)} answers | type={interview_type}")
     result = await ask_groq(
         prompt,
         model=settings.GROQ_SMART_MODEL,
@@ -118,7 +139,8 @@ Rules:
         if len(parsed) != len(answers):
             logger.warning(f"Expected {len(answers)} evals, got {len(parsed)}")
             while len(parsed) < len(answers):
-                parsed.append(_fallback_eval(len(parsed) + 1, answers[len(parsed)]))
+                parsed.append(_fallback_eval(
+                    len(parsed) + 1, answers[len(parsed)]))
 
         logger.info("Batch evaluation parsed successfully")
         return parsed
