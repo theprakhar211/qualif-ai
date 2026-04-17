@@ -105,7 +105,8 @@ class SkillNode:
         # More weight to recent scores
         weights = [0.5 ** i for i in range(len(self.recent_scores))]
         total_w = sum(weights)
-        weighted = sum(s * w for s, w in zip(reversed(self.recent_scores), weights))
+        weighted = sum(
+            s * w for s, w in zip(reversed(self.recent_scores), weights))
         return round(weighted / total_w, 1)
 
     @property
@@ -229,7 +230,7 @@ class SkillGraph:
 async def load_skill_graph(db, user_id: str) -> SkillGraph:
     """Load skill graph from user document."""
     from bson import ObjectId
-    user = await db.users.find_one({"_id": ObjectId(user_id)}, {"skill_graph": 1})
+    user = await db.users_col.find_one({"_id": ObjectId(user_id)}, {"skill_graph": 1})
     raw = (user or {}).get("skill_graph", {})
     return SkillGraph.from_dict(raw)
 
@@ -237,7 +238,7 @@ async def load_skill_graph(db, user_id: str) -> SkillGraph:
 async def save_skill_graph(db, user_id: str, graph: SkillGraph) -> None:
     """Persist skill graph back to user document."""
     from bson import ObjectId
-    await db.users.update_one(
+    await db.users_col.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": {"skill_graph": graph.to_dict()}},
     )
@@ -246,7 +247,8 @@ async def save_skill_graph(db, user_id: str, graph: SkillGraph) -> None:
 async def update_skill_graph_from_session(
     db,
     user_id: str,
-    evaluated_answers: list[dict],   # [{question_text, topic, final_score}, ...]
+    # [{question_text, topic, final_score}, ...]
+    evaluated_answers: list[dict],
 ) -> SkillGraph:
     """
     Call after batch evaluation completes.

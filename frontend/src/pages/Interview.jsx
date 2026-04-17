@@ -4,7 +4,7 @@ import { interviewAPI } from '../services/api'
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis'
 
-const MAX_QUESTIONS = 8
+const MAX_QUESTIONS = 4
 const STATES = {
   LOADING:    'loading',
   SPEAKING:   'speaking',

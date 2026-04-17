@@ -114,7 +114,7 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
     for s in sessions:
         score_trend.append({
             "date":  s["created_at"].strftime("%b %d") if hasattr(s["created_at"], "strftime") else str(s["created_at"])[:10],
-            "score": s.get("overall_score", 0),
+            "score": round(s.get("overall_score") or 0),
             "role":  s.get("role", "")
         })
 
@@ -123,11 +123,13 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
     for s in sessions:
         for answer in s.get("answers", []):
             # Prefer richer missing_keywords from hybrid evaluator
-            missing = answer.get("missing_keywords") or answer.get("missing_concepts", [])
+            missing = answer.get("missing_keywords") or answer.get(
+                "missing_concepts", [])
             for concept in missing:
                 concept = concept.strip().lower()
                 if concept:
-                    concept_misses[concept] = concept_misses.get(concept, 0) + 1
+                    concept_misses[concept] = concept_misses.get(
+                        concept, 0) + 1
 
     weak_areas = sorted(
         [{"concept": k, "count": v} for k, v in concept_misses.items()],
@@ -139,7 +141,7 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
     topic_data = {}
     for s in sessions:
         topics = s.get("topics", [])
-        score  = s.get("overall_score", 0)
+        score = s.get("overall_score", 0)
         for topic in topics:
             if topic not in topic_data:
                 topic_data[topic] = []
