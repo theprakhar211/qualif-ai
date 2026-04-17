@@ -260,7 +260,7 @@ export default function Landing() {
             <span style={styles.footerText}>Built by Prakhar Sharma</span>
             <span style={styles.footerDivider}>·</span>
             <a
-              href="https://github.com/yourusername/qualif-ai"
+              href="https://github.com/theprakhar211/qualif-ai"
               target="_blank"
               rel="noreferrer"
               style={styles.footerLink}
