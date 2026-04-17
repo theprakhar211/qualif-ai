@@ -134,6 +134,53 @@ IMPORTANT RULES:
     return question
 
 
+async def generate_question_adaptive(
+    role: str,
+    topic: str,
+    difficulty: str,
+    asked_questions: list = [],
+    resume_data: dict = None,
+    user_id: str = None,
+    session_skills_covered: list = None,
+) -> tuple[str, str]:
+    """
+    Adaptive wrapper around generate_question().
+    If user_id is provided, targets the user's weakest unpractised skill this session.
+    Returns (question_text, resolved_topic).
+    """
+    resolved_topic = topic
+
+    if user_id and session_skills_covered is not None:
+        try:
+            from services.skill_graph import load_skill_graph, infer_skill
+            graph = await load_skill_graph(db_instance, user_id)
+            target_skill = graph.get_target_skill(attempted_this_session=session_skills_covered)
+            if target_skill:
+                resolved_topic = target_skill
+                difficulty = _infer_difficulty(graph.mastery_for(target_skill))
+                logger.info(f"Adaptive targeting: skill={target_skill} difficulty={difficulty}")
+        except Exception as e:
+            logger.warning(f"Skill graph adaptive targeting failed, using original topic: {e}")
+
+    question = await generate_question(
+        role=role,
+        topic=resolved_topic,
+        difficulty=difficulty,
+        asked_questions=asked_questions,
+        resume_data=resume_data,
+    )
+    return question, resolved_topic
+
+
+def _infer_difficulty(mastery: float) -> str:
+    """Scale difficulty to current skill mastery."""
+    if mastery < 40:
+        return "easy"
+    if mastery < 70:
+        return "medium"
+    return "hard"
+
+
 async def generate_followup(
     role: str,
     previous_question: str,

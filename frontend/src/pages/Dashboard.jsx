@@ -6,15 +6,440 @@ import {
   Tooltip, ResponsiveContainer, BarChart, Bar, Cell
 } from 'recharts'
 
+// ─── Inline SkillGraph component ─────────────────────────────────────────────
+
+const CATEGORY_COLORS = {
+  "Data Structures": { bg: "#0f2a1a", accent: "#4ade80", bar: "#22c55e" },
+  "Algorithms":      { bg: "#0f1e2a", accent: "#38bdf8", bar: "#0ea5e9" },
+  "System Design":   { bg: "#1e0f2a", accent: "#c084fc", bar: "#a855f7" },
+  "Languages":       { bg: "#2a1e0f", accent: "#fb923c", bar: "#f97316" },
+  "Concepts":        { bg: "#0f2a2a", accent: "#2dd4bf", bar: "#14b8a6" },
+  "Communication":   { bg: "#2a2a0f", accent: "#facc15", bar: "#eab308" },
+  "Behavioural":     { bg: "#2a0f0f", accent: "#f87171", bar: "#ef4444" },
+}
+
+function SkillGraph({ skillData }) {
+  const [expanded, setExpanded] = useState(null)
+
+  if (!skillData || !Object.keys(skillData.category_breakdown || {}).length) {
+    return (
+      <div style={{ textAlign: 'center', padding: '3rem 0', color: '#444', fontSize: '14px' }}>
+        <div style={{ fontSize: '32px', marginBottom: '0.75rem' }}>🧠</div>
+        Complete an interview to start building your skill profile.
+      </div>
+    )
+  }
+
+  const { category_breakdown = {}, weakest_skills = [], target_skill } = skillData
+  const practiced = Object.entries(category_breakdown).filter(([, d]) => d.mastery != null)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#444' }}>
+            Click a category to see individual skill breakdown
+          </p>
+        </div>
+        {target_skill && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)',
+            padding: '6px 12px', borderRadius: '8px',
+          }}>
+            <span style={{ fontSize: '14px' }}>🎯</span>
+            <div>
+              <div style={{ fontSize: '10px', color: 'rgba(251,191,36,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Next target</div>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#fbbf24' }}>{target_skill}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Weakest skills strip */}
+      {weakest_skills.length > 0 && (
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', color: '#444', whiteSpace: 'nowrap' }}>Weak areas:</span>
+          {weakest_skills.map((skill, i) => (
+            <span key={skill} style={{
+              padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+              background: i === 0 ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.04)',
+              color: i === 0 ? '#f87171' : '#555',
+              border: i === 0 ? '1px solid rgba(239,68,68,0.25)' : '1px solid #1e1e1e',
+            }}>{skill}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Category grid */}
+      {!practiced.length ? (
+        <p style={{ color: '#444', fontSize: '13px', textAlign: 'center', padding: '2rem 0' }}>
+          No skills recorded yet — complete a practice session first.
+        </p>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+          {practiced
+            .sort((a, b) => a[1].mastery - b[1].mastery)
+            .map(([category, data]) => {
+              const colors   = CATEGORY_COLORS[category] || { bg: '#111', accent: '#555', bar: '#555' }
+              const isOpen   = expanded === category
+              const skillCount = Object.keys(data.skills || {}).length
+
+              return (
+                <div
+                  key={category}
+                  onClick={() => setExpanded(isOpen ? null : category)}
+                  style={{
+                    background: colors.bg,
+                    border: `1px solid ${isOpen ? colors.accent + '50' : '#1e1e1e'}`,
+                    borderRadius: '12px', padding: '14px',
+                    cursor: 'pointer', transition: 'border-color 0.2s',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#ddd', marginBottom: '2px' }}>{category}</div>
+                      <div style={{ fontSize: '11px', color: '#444' }}>
+                        {skillCount > 0 ? `${skillCount} skill${skillCount !== 1 ? 's' : ''}` : 'Not started'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '20px', fontWeight: '800', color: colors.accent }}>
+                        {data.mastery != null ? `${Math.round(data.mastery)}%` : '—'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ height: '3px', background: '#1a1a1a', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: data.mastery != null ? `${data.mastery}%` : '0%',
+                      background: colors.bar, borderRadius: '2px', transition: 'width 0.8s ease',
+                    }} />
+                  </div>
+
+                  {/* Per-skill drilldown */}
+                  {isOpen && skillCount > 0 && (
+                    <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {Object.entries(data.skills).map(([skillName, skillData]) => (
+                        <div key={skillName} style={{
+                          padding: '7px 10px', borderRadius: '7px',
+                          background: skillName === target_skill ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                          border: skillName === target_skill ? `1px solid ${colors.accent}40` : '1px solid transparent',
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {skillName === target_skill && (
+                                <span style={{
+                                  fontSize: '8px', fontWeight: '700', letterSpacing: '0.1em', color: colors.accent,
+                                  background: `${colors.accent}20`, padding: '1px 5px', borderRadius: '3px', textTransform: 'uppercase',
+                                }}>TARGET</span>
+                              )}
+                              <span style={{ fontSize: '12px', color: '#bbb', fontFamily: 'monospace' }}>{skillName}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '10px', color: '#444' }}>{skillData.attempts}×</span>
+                              <span style={{ fontSize: '13px', fontWeight: '700', color: colors.accent }}>
+                                {skillData.mastery != null ? `${Math.round(skillData.mastery)}%` : '—'}
+                              </span>
+                            </div>
+                          </div>
+                          <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%',
+                              width: skillData.mastery != null ? `${skillData.mastery}%` : '0%',
+                              background: skillData.mastery >= 70 ? colors.bar : skillData.mastery >= 40 ? `${colors.bar}cc` : `${colors.bar}70`,
+                              borderRadius: '2px', transition: 'width 0.8s ease',
+                            }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Inline AnswerBenchmark component ────────────────────────────────────────
+
+function ConceptTag({ label, type }) {
+  const styles = {
+    covered: { bg: '#0f2a1a', border: 'rgba(34,197,94,0.3)',  color: '#86efac', icon: '✓' },
+    missing: { bg: '#2a0f0f', border: 'rgba(239,68,68,0.3)',  color: '#fca5a5', icon: '✗' },
+    extra:   { bg: '#0f0f2a', border: 'rgba(99,102,241,0.3)', color: '#a5b4fc', icon: '+' },
+  }
+  const st = styles[type] || styles.extra
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+      background: st.bg, border: `1px solid ${st.border}`, color: st.color,
+      margin: '0 3px 3px 0',
+    }}>
+      <span style={{ opacity: 0.7 }}>{st.icon}</span>
+      {label}
+    </span>
+  )
+}
+
+function AnswerBenchmark({ answerData, index }) {
+  const [showIdeal, setShowIdeal] = useState(false)
+  const [expandAnswer, setExpandAnswer] = useState(false)
+  const [expandIdeal, setExpandIdeal] = useState(false)
+
+  if (!answerData) return null
+
+  const {
+    question_text, stt_corrected_transcript, transcript,
+    ideal_answer, key_concepts = [], scoring_rubric,
+    common_mistakes = [], comparison = {},
+    quick_score, keyword_score, structure_score,
+    matched_keywords = [], missing_keywords = [],
+    penalties_applied = [], structure_flags = {},
+    word_count, wpm, input_mode,
+    filler_words = [], was_corrected, reasoning,
+  } = answerData
+
+  const score        = quick_score ?? 0
+  const candidateText = stt_corrected_transcript || transcript || ''
+  const {
+    covered_concepts = [], missing_concepts = [], extra_concepts = [],
+    comparison_feedback = '', improvement_tip = '', similarity_score = 0,
+  } = comparison
+
+  const scoreCol = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444'
+  const bandLabel = score >= 90 ? 'Excellent' : score >= 70 ? 'Good' : score >= 50 ? 'Fair' : 'Poor'
+
+  const isLong = (text) => text?.length > 280
+  const preview = (text) => text?.slice(0, 280) + '…'
+
+  return (
+    <div style={{ ...s.answerCard }} className="fade-in">
+      {/* Answer header */}
+      <div style={s.answerHeader}>
+        <div style={s.answerHeaderLeft}>
+          <span style={s.answerQ}>Q{index + 1}</span>
+          <span style={{ fontSize: '12px', color: '#444', background: '#1a1a1a', padding: '2px 8px', borderRadius: '10px' }}>
+            {input_mode === 'text' ? '⌨ Typed' : '🎙 Voice'}
+          </span>
+          <span style={{
+            fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
+            background: `${scoreCol}15`, color: scoreCol, border: `1px solid ${scoreCol}30`,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>{bandLabel}</span>
+        </div>
+        <span style={{ fontSize: '20px', fontWeight: '800', color: scoreCol }}>
+          {score}/100
+        </span>
+      </div>
+
+      <p style={s.answerQuestion}>{question_text}</p>
+
+      {/* Hybrid score breakdown row */}
+      {(keyword_score != null || structure_score != null) && (
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '0.875rem' }}>
+          {keyword_score != null && (
+            <span style={{ ...s.statPill, background: keyword_score >= 60 ? '#0f2a1a' : '#2a0f0f', color: keyword_score >= 60 ? '#86efac' : '#fca5a5', border: `1px solid ${keyword_score >= 60 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+              Keywords {Math.round(keyword_score)}%
+            </span>
+          )}
+          {structure_score != null && (
+            <span style={{ ...s.statPill, background: structure_score >= 60 ? '#0f2a1a' : '#2a0f0f', color: structure_score >= 60 ? '#86efac' : '#fca5a5', border: `1px solid ${structure_score >= 60 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+              Structure {Math.round(structure_score)}%
+            </span>
+          )}
+          {wpm > 0 && <span style={s.statPill}>{wpm} WPM</span>}
+          <span style={s.statPill}>{word_count} words</span>
+          {filler_words?.length > 0 && (
+            <span style={{ ...s.statPill, background: '#2a0f0f', color: '#fca5a5', borderColor: '#5a1a1a' }}>
+              Fillers: {filler_words.join(', ')}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Similarity meter */}
+      {similarity_score > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.875rem' }}>
+          <span style={{ fontSize: '11px', color: '#444', whiteSpace: 'nowrap' }}>vs ideal</span>
+          <div style={{ flex: 1, height: '4px', background: '#1a1a1a', borderRadius: '2px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${similarity_score}%`,
+              background: similarity_score >= 70 ? '#22c55e' : similarity_score >= 45 ? '#eab308' : '#ef4444',
+              borderRadius: '2px', transition: 'width 0.8s ease 0.3s',
+            }} />
+          </div>
+          <span style={{ fontSize: '12px', fontWeight: '700', color: similarity_score >= 70 ? '#22c55e' : similarity_score >= 45 ? '#eab308' : '#ef4444', minWidth: '32px' }}>
+            {similarity_score}%
+          </span>
+        </div>
+      )}
+
+      {/* Concept coverage */}
+      {(covered_concepts.length > 0 || missing_concepts.length > 0 || extra_concepts.length > 0) && (
+        <div style={{ marginBottom: '0.875rem' }}>
+          <span style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '6px' }}>
+            Concept Coverage
+          </span>
+          {covered_concepts.map(c => <ConceptTag key={c} label={c} type="covered" />)}
+          {missing_concepts.map(c => <ConceptTag key={c} label={c} type="missing" />)}
+          {extra_concepts.map(c => <ConceptTag key={c} label={c} type="extra" />)}
+        </div>
+      )}
+
+      {/* Fallback to old keywords_found/missing_concepts if comparison not available */}
+      {covered_concepts.length === 0 && missing_concepts.length === 0 && (matched_keywords?.length > 0 || missing_keywords?.length > 0) && (
+        <div style={s.conceptsRow}>
+          {matched_keywords?.length > 0 && (
+            <div style={s.conceptGroup}>
+              <span style={{ color: '#22c55e', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Covered</span>
+              <div style={s.tagWrap}>
+                {matched_keywords.map(k => <span key={k} style={s.tagGreen}>{k}</span>)}
+              </div>
+            </div>
+          )}
+          {missing_keywords?.length > 0 && (
+            <div style={s.conceptGroup}>
+              <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Missed</span>
+              <div style={s.tagWrap}>
+                {missing_keywords.map(k => <span key={k} style={s.tagRed}>{k}</span>)}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Penalties */}
+      {penalties_applied?.length > 0 && (
+        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', marginBottom: '0.875rem' }}>
+          <div style={{ fontSize: '10px', fontWeight: '700', color: '#f87171', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Penalties
+          </div>
+          {penalties_applied.map((p, i) => (
+            <div key={i} style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>— {p}</div>
+          ))}
+        </div>
+      )}
+
+      {/* AI Feedback */}
+      {reasoning && (
+        <div style={s.reasoningBox}>
+          <span style={{ color: '#6366f1', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Feedback</span>
+          <p style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.6', marginTop: '4px', fontStyle: 'italic' }}>{reasoning}</p>
+        </div>
+      )}
+
+      {/* Comparison feedback */}
+      {comparison_feedback && (
+        <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', marginBottom: '0.875rem' }}>
+          <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#aaa', lineHeight: '1.6' }}>{comparison_feedback}</p>
+          {improvement_tip && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '6px' }}>
+              <span style={{ fontSize: '13px' }}>💡</span>
+              <p style={{ margin: 0, fontSize: '12px', color: '#a5b4fc', lineHeight: '1.5' }}>{improvement_tip}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Your answer */}
+      <p style={s.answerTranscript}>
+        {isLong(candidateText) && !expandAnswer ? preview(candidateText) : candidateText}
+        {isLong(candidateText) && (
+          <button onClick={() => setExpandAnswer(e => !e)} style={{ marginLeft: '6px', fontSize: '11px', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            {expandAnswer ? 'less' : 'more'}
+          </button>
+        )}
+        {was_corrected && <span style={{ color: '#444', fontSize: '11px', marginLeft: '6px' }}>(STT corrected)</span>}
+      </p>
+
+      {/* Ideal answer toggle */}
+      {ideal_answer && (
+        <div style={{ marginTop: '0.75rem' }}>
+          <button
+            onClick={() => setShowIdeal(v => !v)}
+            style={{
+              width: '100%', padding: '8px', borderRadius: '8px',
+              background: showIdeal ? 'rgba(251,191,36,0.07)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${showIdeal ? 'rgba(251,191,36,0.25)' : '#1e1e1e'}`,
+              color: showIdeal ? '#fbbf24' : '#444',
+              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              transition: 'all 0.15s',
+            }}
+          >
+            {showIdeal ? '▲' : '▼'} {showIdeal ? 'Hide' : 'Show'} Ideal Answer
+          </button>
+
+          {showIdeal && (
+            <div style={{ marginTop: '10px', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '10px', padding: '1rem' }}>
+              <span style={{ fontSize: '10px', color: 'rgba(251,191,36,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
+                Ideal Answer
+              </span>
+              <p style={{ fontSize: '13px', color: '#bbb', lineHeight: '1.7', margin: '0 0 10px' }}>
+                {isLong(ideal_answer) && !expandIdeal ? preview(ideal_answer) : ideal_answer}
+                {isLong(ideal_answer) && (
+                  <button onClick={() => setExpandIdeal(e => !e)} style={{ marginLeft: '6px', fontSize: '11px', color: '#fbbf24', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    {expandIdeal ? 'less' : 'more'}
+                  </button>
+                )}
+              </p>
+
+              {key_concepts.length > 0 && (
+                <div style={{ marginBottom: '8px' }}>
+                  <span style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '5px' }}>Must cover</span>
+                  {key_concepts.map(c => (
+                    <span key={c} style={{ display: 'inline-block', padding: '2px 7px', borderRadius: '4px', fontSize: '11px', background: 'rgba(251,191,36,0.08)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.15)', margin: '0 3px 3px 0' }}>{c}</span>
+                  ))}
+                </div>
+              )}
+
+              {common_mistakes.length > 0 && (
+                <div>
+                  <span style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '5px' }}>Common mistakes</span>
+                  {common_mistakes.map((m, i) => (
+                    <div key={i} style={{ fontSize: '11px', color: '#555', marginBottom: '3px' }}>⚠ {m}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fallback stats row */}
+      {!keyword_score && (
+        <div style={s.answerStats}>
+          {wpm > 0 && <span style={s.statPill}>{wpm} WPM</span>}
+          <span style={s.statPill}>{word_count} words</span>
+          {filler_words?.length > 0 && (
+            <span style={{ ...s.statPill, background: '#2a0f0f', color: '#fca5a5', borderColor: '#5a1a1a' }}>
+              Fillers: {filler_words.join(', ')}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── ScoreRing ────────────────────────────────────────────────────────────────
+
 function ScoreRing({ score, size = 80 }) {
   const [displayed, setDisplayed] = useState(0)
-  const radius = 30
+  const radius       = 30
   const circumference = 2 * Math.PI * radius
-  const color = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444'
+  const color        = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444'
 
   useEffect(() => {
     let start = 0
-    const step = score / 40
+    const step  = score / 40
     const timer = setInterval(() => {
       start += step
       if (start >= score) { setDisplayed(score); clearInterval(timer) }
@@ -43,6 +468,8 @@ function ScoreRing({ score, size = 80 }) {
   )
 }
 
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const user     = JSON.parse(localStorage.getItem('user') || '{}')
@@ -50,6 +477,7 @@ export default function Dashboard() {
   const [sessions,      setSessions]      = useState([])
   const [stats,         setStats]         = useState(null)
   const [insights,      setInsights]      = useState(null)
+  const [skillData,     setSkillData]     = useState(null)
   const [selected,      setSelected]      = useState(null)
   const [loading,       setLoading]       = useState(true)
   const [error,         setError]         = useState('')
@@ -60,14 +488,16 @@ export default function Dashboard() {
     const load = async () => {
       setLoading(true); setError('')
       try {
-        const [sessRes, statRes, insRes] = await Promise.all([
+        const [sessRes, statRes, insRes, skillRes] = await Promise.all([
           dashboardAPI.getSessions(),
           dashboardAPI.getStats(),
           dashboardAPI.getInsights(),
+          dashboardAPI.getSkills(),
         ])
         setSessions(sessRes.data)
         setStats(statRes.data)
         setInsights(insRes.data)
+        setSkillData(skillRes.data)
       } catch (err) {
         if (err.response?.status === 401) { navigate('/login'); return }
         setError('Failed to load dashboard. Check your connection.')
@@ -85,9 +515,9 @@ export default function Dashboard() {
     finally { setDetailLoading(false) }
   }
 
-  const logout = () => { localStorage.clear(); navigate('/login') }
-  const scoreColor = (s) => s >= 70 ? '#22c55e' : s >= 40 ? '#eab308' : '#ef4444'
-  const diffColor  = (d) => d === 'easy' ? '#22c55e' : d === 'hard' ? '#ef4444' : '#eab308'
+  const logout    = () => { localStorage.clear(); navigate('/login') }
+  const scoreColor = (sc) => sc >= 70 ? '#22c55e' : sc >= 40 ? '#eab308' : '#ef4444'
+  const diffColor  = (d)  => d === 'easy' ? '#22c55e' : d === 'hard' ? '#ef4444' : '#eab308'
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
@@ -166,9 +596,10 @@ export default function Dashboard() {
         {/* Tab bar */}
         <div style={s.tabBar}>
           {[
-            { id: 'overview', label: 'Overview',  icon: '📈' },
-            { id: 'history',  label: 'History',   icon: '🕐' },
-            { id: 'detail',   label: 'Session',   icon: '🔍' },
+            { id: 'overview', label: 'Overview',   icon: '📈' },
+            { id: 'skills',   label: 'Skill Graph', icon: '🧠' },
+            { id: 'history',  label: 'History',    icon: '🕐' },
+            { id: 'detail',   label: 'Session',    icon: '🔍' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -261,7 +692,7 @@ export default function Dashboard() {
                           : i < 6
                           ? 'linear-gradient(90deg, #eab308, #f59e0b)'
                           : '#333',
-                      }}/>
+                      }} />
                     </div>
                   </div>
                 ))}
@@ -291,6 +722,21 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Skill Graph ── */}
+        {activeTab === 'skills' && (
+          <div className="fade-in">
+            <div style={s.chartCard}>
+              <div style={s.chartHeader}>
+                <div>
+                  <h3 style={s.chartTitle}>Skill Graph</h3>
+                  <p style={s.chartSub}>Mastery per skill, updated after every session</p>
+                </div>
+              </div>
+              <SkillGraph skillData={skillData} />
             </div>
           </div>
         )}
@@ -404,69 +850,10 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Answers */}
+                {/* Answers — now using AnswerBenchmark */}
                 <div style={s.answersList}>
                   {selected.answers?.map((a, i) => (
-                    <div key={i} style={s.answerCard} className="fade-in">
-                      <div style={s.answerHeader}>
-                        <div style={s.answerHeaderLeft}>
-                          <span style={s.answerQ}>Q{i + 1}</span>
-                          <span style={{ fontSize: '12px', color: '#444', background: '#1a1a1a', padding: '2px 8px', borderRadius: '10px' }}>
-                            {a.input_mode === 'text' ? '⌨ Typed' : '🎙 Voice'}
-                          </span>
-                        </div>
-                        <span style={{ fontSize: '16px', fontWeight: '700', color: scoreColor(a.quick_score ?? 0) }}>
-                          {a.quick_score != null ? `${a.quick_score}/100` : '—'}
-                        </span>
-                      </div>
-
-                      <p style={s.answerQuestion}>{a.question_text}</p>
-
-                      {a.reasoning && (
-                        <div style={s.reasoningBox}>
-                          <span style={{ color: '#6366f1', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Feedback</span>
-                          <p style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.6', marginTop: '4px', fontStyle: 'italic' }}>{a.reasoning}</p>
-                        </div>
-                      )}
-
-                      {(a.keywords_found?.length > 0 || a.missing_concepts?.length > 0) && (
-                        <div style={s.conceptsRow}>
-                          {a.keywords_found?.length > 0 && (
-                            <div style={s.conceptGroup}>
-                              <span style={{ color: '#22c55e', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Covered</span>
-                              <div style={s.tagWrap}>
-                                {a.keywords_found.map(k => <span key={k} style={s.tagGreen}>{k}</span>)}
-                              </div>
-                            </div>
-                          )}
-                          {a.missing_concepts?.length > 0 && (
-                            <div style={s.conceptGroup}>
-                              <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Missed</span>
-                              <div style={s.tagWrap}>
-                                {a.missing_concepts.map(k => <span key={k} style={s.tagRed}>{k}</span>)}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <p style={s.answerTranscript}>
-                        {a.corrected_transcript || a.transcript}
-                        {a.was_corrected && <span style={{ color: '#444', fontSize: '11px', marginLeft: '6px' }}>(STT corrected)</span>}
-                      </p>
-
-                      <div style={s.answerStats}>
-                        {a.wpm > 0 && (
-                          <span style={s.statPill}>{a.wpm} WPM</span>
-                        )}
-                        <span style={s.statPill}>{a.word_count} words</span>
-                        {a.filler_words?.length > 0 && (
-                          <span style={{ ...s.statPill, background: '#2a0f0f', color: '#fca5a5', borderColor: '#5a1a1a' }}>
-                            Fillers: {a.filler_words.join(', ')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    <AnswerBenchmark key={i} answerData={a} index={i} />
                   ))}
                 </div>
               </>
@@ -483,17 +870,12 @@ const s = {
   nav:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' },
   navRight: { display: 'flex', alignItems: 'center', gap: '1rem' },
   greeting: { color: '#555', fontSize: '14px' },
-  navGhost: { background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
+  navGhost:   { background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
   navPrimary: { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', padding: '0.4rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' },
   content:  { maxWidth: '1000px', margin: '0 auto', padding: '2rem 1.5rem' },
 
   statsRow: { display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' },
-  statCard: {
-    flex: 1, minWidth: '130px',
-    background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)',
-    border: '1px solid #1e1e1e', borderRadius: '14px',
-    padding: '1.25rem', textAlign: 'center',
-  },
+  statCard: { flex: 1, minWidth: '130px', background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e1e', borderRadius: '14px', padding: '1.25rem', textAlign: 'center' },
   statIcon:   { fontSize: '20px', marginBottom: '0.5rem' },
   statValue:  { fontSize: '28px', fontWeight: '700', color: '#fff', lineHeight: 1 },
   statSuffix: { fontSize: '14px', color: '#555', fontWeight: '400' },
@@ -521,11 +903,7 @@ const s = {
   emptyState:    { textAlign: 'center', padding: '4rem 0' },
 
   sessionGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.75rem' },
-  sessionCard: {
-    background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)',
-    border: '1px solid #1e1e1e', borderRadius: '14px',
-    padding: '1.25rem', cursor: 'pointer', transition: 'border-color 0.2s, transform 0.15s',
-  },
+  sessionCard: { background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e1e', borderRadius: '14px', padding: '1.25rem', cursor: 'pointer', transition: 'border-color 0.2s, transform 0.15s' },
   sessionCardTop: { display: 'flex', gap: '1rem', marginBottom: '0.75rem' },
   sessionLeft:    { flexShrink: 0 },
   sessionRight:   { flex: 1, minWidth: 0 },
@@ -555,7 +933,7 @@ const s = {
   conceptsRow:  { display: 'flex', gap: '1.5rem', marginBottom: '1rem', flexWrap: 'wrap' },
   conceptGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
   tagWrap:      { display: 'flex', flexWrap: 'wrap', gap: '4px' },
-  tagGreen:     { background: '#0f2a1a', border: '1px solid rgba(34,197,94,0.3)', color: '#86efac', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
+  tagGreen:     { background: '#0f2a1a', border: '1px solid rgba(34,197,94,0.3)',  color: '#86efac', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
   tagRed:       { background: '#2a0f0f', border: '1px solid rgba(239,68,68,0.3)',  color: '#fca5a5', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
 
   answerStats: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' },

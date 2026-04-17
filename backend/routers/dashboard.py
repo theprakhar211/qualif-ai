@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from bson import ObjectId
+from loguru import logger
 from services.dependencies import get_current_user
 from database import db_instance, serialize_doc
 
@@ -25,14 +26,14 @@ async def get_sessions(current_user: dict = Depends(get_current_user)):
             if answers else 0
         )
         result.append({
-            "id":          s["id"],
-            "role":        s.get("role", ""),
-            "difficulty":  s.get("difficulty", ""),
-            "status":      s.get("status", ""),
-            "created_at":  s.get("created_at", "").isoformat() if s.get("created_at") else "",
+            "id":           s["id"],
+            "role":         s.get("role", ""),
+            "difficulty":   s.get("difficulty", ""),
+            "status":       s.get("status", ""),
+            "created_at":   s.get("created_at", "").isoformat() if s.get("created_at") else "",
             "answer_count": len(answers),
-            "avg_score":   avg_score,
-            "topics":      s.get("topics", []),
+            "avg_score":    avg_score,
+            "topics":       s.get("topics", []),
         })
 
     return result
@@ -117,15 +118,16 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
             "role":  s.get("role", "")
         })
 
-    # Weak areas — aggregate missing concepts across all sessions
+    # Weak areas — aggregate missing keywords/concepts across all sessions
     concept_misses = {}
     for s in sessions:
         for answer in s.get("answers", []):
-            for concept in answer.get("missing_concepts", []):
+            # Prefer richer missing_keywords from hybrid evaluator
+            missing = answer.get("missing_keywords") or answer.get("missing_concepts", [])
+            for concept in missing:
                 concept = concept.strip().lower()
                 if concept:
-                    concept_misses[concept] = concept_misses.get(
-                        concept, 0) + 1
+                    concept_misses[concept] = concept_misses.get(concept, 0) + 1
 
     weak_areas = sorted(
         [{"concept": k, "count": v} for k, v in concept_misses.items()],
@@ -137,7 +139,7 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
     topic_data = {}
     for s in sessions:
         topics = s.get("topics", [])
-        score = s.get("overall_score", 0)
+        score  = s.get("overall_score", 0)
         for topic in topics:
             if topic not in topic_data:
                 topic_data[topic] = []
@@ -145,7 +147,7 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
 
     topic_scores = [
         {
-            "topic": topic,
+            "topic":     topic,
             "avg_score": round(sum(scores) / len(scores)),
             "sessions":  len(scores)
         }
@@ -159,3 +161,28 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
         "topic_scores":    topic_scores,
         "total_evaluated": len(sessions)
     }
+
+
+@router.get("/skills")
+async def get_skills(current_user: dict = Depends(get_current_user)):
+    """
+    Returns full skill graph breakdown for the dashboard.
+    Includes category mastery, per-skill scores, weakest skills, and adaptive target.
+    """
+    try:
+        from services.skill_graph import load_skill_graph
+        graph = await load_skill_graph(db_instance, str(current_user["_id"]))
+        return {
+            "skill_graph":        graph.to_dict(),
+            "category_breakdown": graph.category_breakdown(),
+            "weakest_skills":     graph.get_weakest_skills(n=5),
+            "target_skill":       graph.get_target_skill(),
+        }
+    except Exception as e:
+        logger.warning(f"Skill graph load failed: {e}")
+        return {
+            "skill_graph":        {},
+            "category_breakdown": {},
+            "weakest_skills":     [],
+            "target_skill":       None,
+        }

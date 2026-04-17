@@ -55,6 +55,7 @@ export const dashboardAPI = {
   getSession:  (id) => api.get(`/dashboard/session/${id}`),
   getStats:    ()   => api.get('/dashboard/stats'),
   getInsights: ()   => api.get('/dashboard/insights'),
+  getSkills: () => api.get('/dashboard/skills'),
 }
 
 export const resumeAPI = {

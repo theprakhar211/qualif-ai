@@ -22,6 +22,10 @@ class Database:
     def results_col(self):
         return self.client[settings.DB_NAME]["results"]
 
+    @property
+    def ideal_answers_col(self):
+        return self.client[settings.DB_NAME]["ideal_answers"]
+
 
 db_instance = Database()
 
@@ -30,10 +34,14 @@ async def connect_db():
     logger.info("Connecting to MongoDB...")
     db_instance.client = AsyncIOMotorClient(settings.MONGO_URI)
 
-    # Create indexes
+    # Existing indexes
     await db_instance.users_col.create_index("email", unique=True)
     await db_instance.sessions_col.create_index("user_id")
     await db_instance.questions_col.create_index([("role", 1), ("difficulty", 1)])
+
+    # New indexes for skill graph + ideal answer cache
+    await db_instance.ideal_answers_col.create_index("fingerprint", unique=True)
+    await db_instance.ideal_answers_col.create_index("question_text")
 
     logger.success("MongoDB connected.")
 
