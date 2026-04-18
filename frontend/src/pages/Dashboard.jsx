@@ -21,7 +21,11 @@ const CATEGORY_COLORS = {
 function SkillGraph({ skillData }) {
   const [expanded, setExpanded] = useState(null)
 
-  if (!skillData || !Object.keys(skillData.category_breakdown || {}).length) {
+  const { category_breakdown = {}, weakest_skills = [], target_skill, skill_graph = {} } = skillData || {}
+  const practiced = Object.entries(category_breakdown).filter(([, d]) => d.mastery != null)
+  const hasAnyData = Object.keys(skill_graph).length > 0
+
+  if (!hasAnyData) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem 0', color: '#444', fontSize: '14px' }}>
         <div style={{ fontSize: '32px', marginBottom: '0.75rem' }}>🧠</div>
@@ -29,9 +33,6 @@ function SkillGraph({ skillData }) {
       </div>
     )
   }
-
-  const { category_breakdown = {}, weakest_skills = [], target_skill } = skillData
-  const practiced = Object.entries(category_breakdown).filter(([, d]) => d.mastery != null)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

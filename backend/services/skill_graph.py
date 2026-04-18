@@ -39,49 +39,123 @@ PREREQUISITES: dict[str, list[str]] = {
 }
 
 # Question topic → skill mapping
+# Keys are substrings matched against (topic + question_text).lower()
+# Longer/more specific keys are matched first (see infer_skill)
 TOPIC_TO_SKILL: dict[str, str] = {
-    "array": "Arrays",
-    "linked list": "Linked Lists",
-    "stack": "Stacks & Queues",
-    "queue": "Stacks & Queues",
-    "hash": "Hash Tables",
-    "tree": "Trees",
-    "graph": "Graphs",
-    "heap": "Heaps",
-    "sort": "Sorting",
-    "search": "Searching",
+    # Data Structures — specific first
     "binary search": "Binary Search",
-    "recursion": "Recursion",
+    "linked list":   "Linked Lists",
     "dynamic programming": "Dynamic Programming",
-    "dp": "Dynamic Programming",
-    "greedy": "Greedy",
-    "cache": "Caching",
-    "load balanc": "Load Balancing",
-    "database": "Databases",
-    "sql": "SQL",
-    "api": "APIs & REST",
-    "rest": "APIs & REST",
-    "microservice": "Microservices",
-    "oop": "OOP",
-    "concurren": "Concurrency",
-    "thread": "Concurrency",
-    "python": "Python",
-    "javascript": "JavaScript",
-    "typescript": "TypeScript",
-    "star": "STAR Format",
-    "conflict": "Conflict Resolution",
-    "leadership": "Leadership",
-    "failure": "Failure & Growth",
-    "team": "Teamwork",
+    "hash table":    "Hash Tables",
+    "hash map":      "Hash Tables",
+    "hashmap":       "Hash Tables",
+    "hashtable":     "Hash Tables",
+    "binary tree":   "Trees",
+    "bst":           "Trees",
+    "graph":         "Graphs",
+    "heap":          "Heaps",
+    "priority queue":"Heaps",
+    "stack":         "Stacks & Queues",
+    "queue":         "Stacks & Queues",
+    "array":         "Arrays",
+    "list":          "Arrays",
+    "tree":          "Trees",
+    "hash":          "Hash Tables",
+    # Algorithms
+    "sorting":       "Sorting",
+    "sort":          "Sorting",
+    "searching":     "Searching",
+    "search":        "Searching",
+    "recursion":     "Recursion",
+    "recursive":     "Recursion",
+    "memoization":   "Dynamic Programming",
+    "tabulation":    "Dynamic Programming",
+    "greedy":        "Greedy",
+    "bfs":           "Graph Algorithms",
+    "dfs":           "Graph Algorithms",
+    "dijkstra":      "Graph Algorithms",
+    "shortest path": "Graph Algorithms",
+    "traversal":     "Graph Algorithms",
+    "dp":            "Dynamic Programming",
+    "time complexity": "Algorithms",
+    "space complexity":"Algorithms",
+    "big o":         "Algorithms",
+    "algorithm":     "Algorithms",
+    # System Design
+    "microservice":  "Microservices",
+    "load balanc":   "Load Balancing",
+    "message queue": "Message Queues",
+    "caching":       "Caching",
+    "cache":         "Caching",
+    "database":      "Databases",
+    "sql":           "SQL",
+    "nosql":         "Databases",
+    "mongodb":       "Databases",
+    "postgres":      "Databases",
+    "api":           "APIs & REST",
+    "rest":          "APIs & REST",
+    "graphql":       "APIs & REST",
+    "scalab":        "System Design",
+    "system design": "System Design",
+    "cdn":           "System Design",
+    "distributed":   "System Design",
+    # Languages
+    "python":        "Python",
+    "javascript":    "JavaScript",
+    "typescript":    "TypeScript",
+    "java":          "Java",
+    "golang":        "Go",
+    # Concepts
+    "concurren":     "Concurrency",
+    "thread":        "Concurrency",
+    "async":         "Concurrency",
+    "parallel":      "Concurrency",
+    "deadlock":      "Concurrency",
+    "mutex":         "Concurrency",
+    "object.orient": "OOP",
+    "oop":           "OOP",
+    "inheritance":   "OOP",
+    "polymorphism":  "OOP",
+    "encapsulation": "OOP",
+    "design pattern":"OOP",
+    "memory":        "Memory Management",
+    "garbage":       "Memory Management",
+    "pointer":       "Memory Management",
+    "network":       "Networking",
+    "http":          "Networking",
+    "tcp":           "Networking",
+    "security":      "Security",
+    "auth":          "Security",
+    "encryption":    "Security",
+    # Behavioural
+    "star":          "STAR Format",
+    "conflict":      "Conflict Resolution",
+    "disagree":      "Conflict Resolution",
+    "leadership":    "Leadership",
+    "led a":         "Leadership",
+    "failure":       "Failure & Growth",
+    "mistake":       "Failure & Growth",
+    "team":          "Teamwork",
+    "collaborat":    "Teamwork",
+    "communic":      "Clarity",
+    "explain":       "Clarity",
 }
 
 
 def infer_skill(question_text: str, topic: str | None = None) -> str | None:
-    """Map a question/topic string to a canonical skill name."""
-    text = (topic or question_text or "").lower()
-    for fragment, skill in TOPIC_TO_SKILL.items():
-        if fragment in text:
-            return skill
+    """
+    Map a question/topic string to a canonical skill name.
+    Searches topic first (exact), then full question text (substring).
+    """
+    # Build a combined search string from both topic and question
+    search = ((topic or "") + " " + (question_text or "")).lower()
+
+    # Longer/more specific fragments first to avoid false matches
+    sorted_fragments = sorted(TOPIC_TO_SKILL.keys(), key=len, reverse=True)
+    for fragment in sorted_fragments:
+        if fragment in search:
+            return TOPIC_TO_SKILL[fragment]
+
     return None
 
 
@@ -105,8 +179,7 @@ class SkillNode:
         # More weight to recent scores
         weights = [0.5 ** i for i in range(len(self.recent_scores))]
         total_w = sum(weights)
-        weighted = sum(
-            s * w for s, w in zip(reversed(self.recent_scores), weights))
+        weighted = sum(s * w for s, w in zip(reversed(self.recent_scores), weights))
         return round(weighted / total_w, 1)
 
     @property
@@ -247,8 +320,7 @@ async def save_skill_graph(db, user_id: str, graph: SkillGraph) -> None:
 async def update_skill_graph_from_session(
     db,
     user_id: str,
-    # [{question_text, topic, final_score}, ...]
-    evaluated_answers: list[dict],
+    evaluated_answers: list[dict],   # [{question_text, topic, final_score}, ...]
 ) -> SkillGraph:
     """
     Call after batch evaluation completes.
