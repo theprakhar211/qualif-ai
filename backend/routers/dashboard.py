@@ -126,11 +126,13 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
     for s in sessions:
         for answer in s.get("answers", []):
             # Prefer richer missing_keywords from hybrid evaluator
-            missing = answer.get("missing_keywords") or answer.get("missing_concepts", [])
+            missing = answer.get("missing_keywords") or answer.get(
+                "missing_concepts", [])
             for concept in missing:
                 concept = concept.strip().lower()
                 if concept:
-                    concept_misses[concept] = concept_misses.get(concept, 0) + 1
+                    concept_misses[concept] = concept_misses.get(
+                        concept, 0) + 1
 
     weak_areas = sorted(
         [{"concept": k, "count": v} for k, v in concept_misses.items()],
@@ -142,7 +144,7 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
     topic_data = {}
     for s in sessions:
         topics = s.get("topics", [])
-        score  = s.get("overall_score", 0)
+        score = s.get("overall_score", 0)
         for topic in topics:
             if topic not in topic_data:
                 topic_data[topic] = []
@@ -163,6 +165,31 @@ async def get_insights(current_user: dict = Depends(get_current_user)):
         "weak_areas":      weak_areas,
         "topic_scores":    topic_scores,
         "total_evaluated": len(sessions)
+    }
+
+
+@router.delete("/reset")
+async def reset_progress(current_user: dict = Depends(get_current_user)):
+    """
+    Delete all interview sessions and clear skill graph for the current user.
+    Ideal answer cache is preserved (shared, not user-specific).
+    """
+    user_id = str(current_user["_id"])
+
+    result = await db_instance.sessions_col.delete_many({"user_id": user_id})
+
+    await db_instance.users_col.update_one(
+        {"_id": current_user["_id"]},
+        {"$unset": {"skill_graph": ""}}
+    )
+
+    logger.info(
+        f"Reset: deleted {result.deleted_count} sessions + skill graph for user {user_id}")
+
+    return {
+        "reset": True,
+        "sessions_deleted": result.deleted_count,
+        "message": "All interview history and skill data cleared."
     }
 
 

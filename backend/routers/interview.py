@@ -59,11 +59,14 @@ async def start_interview(
 ):
     user_id = str(current_user["_id"])
 
-    # Fetch user's resume if available
-    user = await db_instance.users_col.find_one({"_id": current_user["_id"]})
-    resume_data = user.get("resume", {}) if user else {}
-
     interview_type = getattr(data, 'interview_type', 'quick') or 'quick'
+
+    # Only fetch resume for complete interviews — quick practice is topic-based only
+    resume_data = {}
+    if interview_type == 'complete':
+        user = await db_instance.users_col.find_one({"_id": current_user["_id"]})
+        resume_data = user.get("resume", {}) if user else {}
+
     phase = get_phase(1, interview_type)
 
     # Generate first question based on type

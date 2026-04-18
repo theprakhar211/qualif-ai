@@ -484,6 +484,8 @@ export default function Dashboard() {
   const [error,         setError]         = useState('')
   const [activeTab,     setActiveTab]     = useState('overview')
   const [detailLoading, setDetailLoading] = useState(false)
+  const [confirmReset,  setConfirmReset]  = useState(false)
+  const [resetting,     setResetting]     = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -517,6 +519,23 @@ export default function Dashboard() {
   }
 
   const logout    = () => { localStorage.clear(); navigate('/login') }
+
+  const handleReset = async () => {
+    if (!confirmReset) { setConfirmReset(true); return }
+    setResetting(true)
+    try {
+      await dashboardAPI.reset()
+      setSessions([]); setStats(null); setInsights(null); setSkillData(null); setSelected(null)
+      setConfirmReset(false)
+      const [sessRes, statRes, insRes, skillRes] = await Promise.all([
+        dashboardAPI.getSessions(), dashboardAPI.getStats(),
+        dashboardAPI.getInsights(), dashboardAPI.getSkills(),
+      ])
+      setSessions(sessRes.data); setStats(statRes.data)
+      setInsights(insRes.data);  setSkillData(skillRes.data)
+    } catch { setConfirmReset(false) }
+    finally { setResetting(false) }
+  }
   const scoreColor = (sc) => sc >= 70 ? '#22c55e' : sc >= 40 ? '#eab308' : '#ef4444'
   const diffColor  = (d)  => d === 'easy' ? '#22c55e' : d === 'hard' ? '#ef4444' : '#eab308'
 
@@ -566,6 +585,14 @@ export default function Dashboard() {
           <span style={s.greeting}>Hey, {user.name?.split(' ')[0]} 👋</span>
           <button onClick={() => navigate('/app')} style={s.navPrimary} className="btn-press">
             + New interview
+          </button>
+          <button
+            onClick={handleReset}
+            onBlur={() => setTimeout(() => setConfirmReset(false), 200)}
+            style={{ ...s.navGhost, ...(confirmReset ? { borderColor: '#ef4444', color: '#ef4444' } : {}) }}
+            className="btn-press"
+          >
+            {resetting ? '...' : confirmReset ? '⚠ Sure? Click again' : '🗑 Reset'}
           </button>
           <button onClick={logout} style={s.navGhost} className="btn-press">Logout</button>
         </div>

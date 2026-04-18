@@ -56,6 +56,7 @@ export const dashboardAPI = {
   getStats:    ()   => api.get('/dashboard/stats'),
   getInsights: ()   => api.get('/dashboard/insights'),
   getSkills: () => api.get('/dashboard/skills'),
+  reset:       () => api.delete('/dashboard/reset'),
 }
 
 export const resumeAPI = {
