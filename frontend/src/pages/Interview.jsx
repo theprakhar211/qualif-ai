@@ -4,9 +4,10 @@ import { interviewAPI } from '../services/api'
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis'
 
-const MAX_QUESTIONS = 4
+const MAX_QUESTIONS = 8
 const STATES = {
   LOADING:    'loading',
+  READY:      'ready',      // waiting for user gesture before first speak
   SPEAKING:   'speaking',
   LISTENING:  'listening',
   PROCESSING: 'processing',
@@ -91,9 +92,10 @@ export default function Interview() {
   const [evalResults,   setEvalResults]   = useState(null)
   const [evalError,     setEvalError]     = useState(false)
 
-  const timerRef     = useRef(null)
-  const startTimeRef = useRef(null)
-  const hasAskedRef  = useRef(false)
+  const timerRef          = useRef(null)
+  const startTimeRef      = useRef(null)
+  const hasAskedRef       = useRef(false)
+  const pendingQuestionRef = useRef(null)   // holds first question until user clicks Start
 
   const {
     transcript, interimTranscript,
@@ -142,7 +144,14 @@ export default function Interview() {
         setDifficulty(session.difficulty)
         setInterviewType(session.interview_type || 'quick')
         setPhase(session.current_phase || 'technical')
-        askQuestion(session.current_question, session.difficulty, session.current_phase)
+        // Store the first question but don't speak yet —
+        // browser blocks TTS without a direct user gesture first
+        pendingQuestionRef.current = {
+          question: session.current_question,
+          difficulty: session.difficulty,
+          phase: session.current_phase,
+        }
+        setState(STATES.READY)
       } catch (err) {
         setFatalError(err.response?.status === 404
           ? 'Interview session not found.'
@@ -254,6 +263,34 @@ export default function Interview() {
 
   const phaseColor = PHASE_COLORS[phase] || '#6366f1'
   const phaseLabel = PHASE_LABELS[phase] || 'Interview'
+
+  // ── Ready screen (user must click to satisfy browser autoplay policy) ──
+  if (state === STATES.READY) {
+    const pending = pendingQuestionRef.current
+    return (
+      <div style={s.page}>
+        <div style={s.centreCard}>
+          <div style={{ fontSize: '32px', marginBottom: '1rem' }}>🎤</div>
+          <h2 style={{ marginBottom: '0.5rem', fontSize: '20px' }}>Ready to start?</h2>
+          <p style={{ color: '#666', marginBottom: '0.5rem', fontSize: '14px' }}>
+            {role} Interview · {MAX_QUESTIONS} questions
+          </p>
+          <p style={{ color: '#444', marginBottom: '2rem', fontSize: '13px', lineHeight: '1.6' }}>
+            Make sure your microphone is ready. The interviewer will read each question aloud.
+          </p>
+          <button
+            onClick={() => {
+              if (pending) askQuestion(pending.question, pending.difficulty, pending.phase)
+            }}
+            style={s.primaryBtn}
+            className="btn-press"
+          >
+            Begin Interview →
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // ── Error screen ──
   if (state === STATES.ERROR) return (
@@ -402,6 +439,7 @@ export default function Interview() {
           }}/>
           <span style={s.stateLabel}>
             {state === STATES.LOADING    && 'Loading your question...'}
+            {state === STATES.READY      && 'Ready'}
             {state === STATES.SPEAKING   && 'Interviewer is speaking...'}
             {state === STATES.LISTENING  && (inputMode === 'voice' ? `Listening — ${timer}s` : 'Type your answer below')}
             {state === STATES.PROCESSING && 'Saving your answer...'}
