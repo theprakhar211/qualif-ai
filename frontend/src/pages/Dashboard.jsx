@@ -189,6 +189,7 @@ function ConceptTag({ label, type }) {
 }
 
 function AnswerBenchmark({ answerData, index }) {
+  const [open, setOpen] = useState(false)
   const [showIdeal, setShowIdeal] = useState(false)
   const [expandAnswer, setExpandAnswer] = useState(false)
   const [expandIdeal, setExpandIdeal] = useState(false)
@@ -197,233 +198,245 @@ function AnswerBenchmark({ answerData, index }) {
 
   const {
     question_text, stt_corrected_transcript, transcript,
-    ideal_answer, key_concepts = [], scoring_rubric,
-    common_mistakes = [], comparison = {},
+    ideal_answer, key_concepts = [], common_mistakes = [], comparison = {},
     quick_score, keyword_score, structure_score,
     matched_keywords = [], missing_keywords = [],
-    penalties_applied = [], structure_flags = {},
-    word_count, wpm, input_mode,
+    penalties_applied = [], word_count, wpm, input_mode,
     filler_words = [], was_corrected, reasoning,
   } = answerData
 
-  const score        = quick_score ?? 0
+  const score         = quick_score ?? 0
   const candidateText = stt_corrected_transcript || transcript || ''
   const {
     covered_concepts = [], missing_concepts = [], extra_concepts = [],
     comparison_feedback = '', improvement_tip = '', similarity_score = 0,
   } = comparison
 
-  const scoreCol = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444'
+  const scoreCol  = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444'
   const bandLabel = score >= 90 ? 'Excellent' : score >= 70 ? 'Good' : score >= 50 ? 'Fair' : 'Poor'
+  const isLong    = (t) => t?.length > 300
+  const preview   = (t) => t?.slice(0, 300) + '…'
 
-  const isLong = (text) => text?.length > 280
-  const preview = (text) => text?.slice(0, 280) + '…'
+  // Which keywords to show in the summary strip (top 4 missing only)
+  const topMissing = (missing_concepts.length > 0 ? missing_concepts : missing_keywords).slice(0, 4)
+  const hasAnalysis = reasoning || comparison_feedback || covered_concepts.length > 0
+    || missing_concepts.length > 0 || penalties_applied.length > 0 || ideal_answer
 
   return (
-    <div style={{ ...s.answerCard }} className="fade-in">
-      {/* Answer header */}
-      <div style={s.answerHeader}>
-        <div style={s.answerHeaderLeft}>
-          <span style={s.answerQ}>Q{index + 1}</span>
-          <span style={{ fontSize: '12px', color: '#444', background: '#1a1a1a', padding: '2px 8px', borderRadius: '10px' }}>
-            {input_mode === 'text' ? '⌨ Typed' : '🎙 Voice'}
-          </span>
-          <span style={{
-            fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
-            background: `${scoreCol}15`, color: scoreCol, border: `1px solid ${scoreCol}30`,
-            textTransform: 'uppercase', letterSpacing: '0.06em',
-          }}>{bandLabel}</span>
+    <div style={{ ...s.answerCard, padding: 0, overflow: 'hidden' }} className="fade-in">
+
+      {/* ── Always-visible summary row ── */}
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          padding: '1rem 1.25rem', cursor: 'pointer',
+          borderBottom: open ? '1px solid #1e1e1e' : 'none',
+        }}
+      >
+        {/* Score ring */}
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+          background: `${scoreCol}15`, border: `2px solid ${scoreCol}40`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexDirection: 'column',
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: '800', color: scoreCol, lineHeight: 1 }}>{score}</span>
         </div>
-        <span style={{ fontSize: '20px', fontWeight: '800', color: scoreCol }}>
-          {score}/100
-        </span>
+
+        {/* Question + quick summary */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', color: '#444', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Q{index + 1}</span>
+            <span style={{
+              fontSize: '10px', fontWeight: '700', padding: '1px 7px', borderRadius: '3px',
+              background: `${scoreCol}15`, color: scoreCol, border: `1px solid ${scoreCol}30`,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>{bandLabel}</span>
+            <span style={{ fontSize: '11px', color: '#333', background: '#1a1a1a', padding: '1px 7px', borderRadius: '10px' }}>
+              {input_mode === 'text' ? '⌨' : '🎙'} {word_count}w{wpm > 0 ? ` · ${wpm} wpm` : ''}
+            </span>
+            {keyword_score != null && (
+              <span style={{ fontSize: '11px', color: keyword_score >= 60 ? '#86efac' : '#fca5a5', background: keyword_score >= 60 ? '#0f2a1a' : '#2a0f0f', padding: '1px 7px', borderRadius: '10px', border: `1px solid ${keyword_score >= 60 ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                KW {Math.round(keyword_score)}%
+              </span>
+            )}
+            {similarity_score > 0 && (
+              <span style={{ fontSize: '11px', color: similarity_score >= 70 ? '#86efac' : similarity_score >= 45 ? '#fcd34d' : '#fca5a5', background: '#1a1a1a', padding: '1px 7px', borderRadius: '10px' }}>
+                ≈{similarity_score}% ideal
+              </span>
+            )}
+          </div>
+          <p style={{ margin: 0, fontSize: '13px', color: '#888', lineHeight: '1.4',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+            {question_text}
+          </p>
+          {/* Top missing keywords always visible */}
+          {topMissing.length > 0 && (
+            <div style={{ marginTop: '5px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {topMissing.map(k => (
+                <span key={k} style={{ fontSize: '10px', color: '#f87171', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', padding: '1px 6px', borderRadius: '3px' }}>✗ {k}</span>
+              ))}
+              {(missing_concepts.length > 4 || missing_keywords.length > 4) && (
+                <span style={{ fontSize: '10px', color: '#555' }}>+{(missing_concepts.length || missing_keywords.length) - 4} more</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Expand chevron */}
+        {hasAnalysis && (
+          <span style={{ color: '#333', fontSize: '12px', flexShrink: 0, transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>▼</span>
+        )}
       </div>
 
-      <p style={s.answerQuestion}>{question_text}</p>
+      {/* ── Expandable analysis drawer ── */}
+      {open && (
+        <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-      {/* Hybrid score breakdown row */}
-      {(keyword_score != null || structure_score != null) && (
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '0.875rem' }}>
-          {keyword_score != null && (
-            <span style={{ ...s.statPill, background: keyword_score >= 60 ? '#0f2a1a' : '#2a0f0f', color: keyword_score >= 60 ? '#86efac' : '#fca5a5', border: `1px solid ${keyword_score >= 60 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
-              Keywords {Math.round(keyword_score)}%
-            </span>
-          )}
-          {structure_score != null && (
-            <span style={{ ...s.statPill, background: structure_score >= 60 ? '#0f2a1a' : '#2a0f0f', color: structure_score >= 60 ? '#86efac' : '#fca5a5', border: `1px solid ${structure_score >= 60 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
-              Structure {Math.round(structure_score)}%
-            </span>
-          )}
-          {wpm > 0 && <span style={s.statPill}>{wpm} WPM</span>}
-          <span style={s.statPill}>{word_count} words</span>
-          {filler_words?.length > 0 && (
-            <span style={{ ...s.statPill, background: '#2a0f0f', color: '#fca5a5', borderColor: '#5a1a1a' }}>
-              Fillers: {filler_words.join(', ')}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Similarity meter */}
-      {similarity_score > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.875rem' }}>
-          <span style={{ fontSize: '11px', color: '#444', whiteSpace: 'nowrap' }}>vs ideal</span>
-          <div style={{ flex: 1, height: '4px', background: '#1a1a1a', borderRadius: '2px', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%',
-              width: `${similarity_score}%`,
-              background: similarity_score >= 70 ? '#22c55e' : similarity_score >= 45 ? '#eab308' : '#ef4444',
-              borderRadius: '2px', transition: 'width 0.8s ease 0.3s',
-            }} />
+          {/* Your answer */}
+          <div>
+            <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Your Answer</div>
+            <p style={{ ...s.answerTranscript, margin: 0 }}>
+              {isLong(candidateText) && !expandAnswer ? preview(candidateText) : candidateText}
+              {isLong(candidateText) && (
+                <button onClick={() => setExpandAnswer(e => !e)} style={{ marginLeft: '6px', fontSize: '11px', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  {expandAnswer ? 'less' : 'more'}
+                </button>
+              )}
+              {was_corrected && <span style={{ color: '#444', fontSize: '11px', marginLeft: '6px' }}>(STT corrected)</span>}
+            </p>
           </div>
-          <span style={{ fontSize: '12px', fontWeight: '700', color: similarity_score >= 70 ? '#22c55e' : similarity_score >= 45 ? '#eab308' : '#ef4444', minWidth: '32px' }}>
-            {similarity_score}%
-          </span>
-        </div>
-      )}
 
-      {/* Concept coverage */}
-      {(covered_concepts.length > 0 || missing_concepts.length > 0 || extra_concepts.length > 0) && (
-        <div style={{ marginBottom: '0.875rem' }}>
-          <span style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '6px' }}>
-            Concept Coverage
-          </span>
-          {covered_concepts.map(c => <ConceptTag key={c} label={c} type="covered" />)}
-          {missing_concepts.map(c => <ConceptTag key={c} label={c} type="missing" />)}
-          {extra_concepts.map(c => <ConceptTag key={c} label={c} type="extra" />)}
-        </div>
-      )}
-
-      {/* Fallback to old keywords_found/missing_concepts if comparison not available */}
-      {covered_concepts.length === 0 && missing_concepts.length === 0 && (matched_keywords?.length > 0 || missing_keywords?.length > 0) && (
-        <div style={s.conceptsRow}>
-          {matched_keywords?.length > 0 && (
-            <div style={s.conceptGroup}>
-              <span style={{ color: '#22c55e', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Covered</span>
-              <div style={s.tagWrap}>
-                {matched_keywords.map(k => <span key={k} style={s.tagGreen}>{k}</span>)}
+          {/* Full concept coverage */}
+          {(covered_concepts.length > 0 || missing_concepts.length > 0 || extra_concepts.length > 0) && (
+            <div>
+              <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '7px' }}>Concept Coverage</div>
+              <div>
+                {covered_concepts.map(c => <ConceptTag key={c} label={c} type="covered" />)}
+                {missing_concepts.map(c => <ConceptTag key={c} label={c} type="missing" />)}
+                {extra_concepts.map(c => <ConceptTag key={c} label={c} type="extra" />)}
               </div>
             </div>
           )}
-          {missing_keywords?.length > 0 && (
-            <div style={s.conceptGroup}>
-              <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Missed</span>
-              <div style={s.tagWrap}>
-                {missing_keywords.map(k => <span key={k} style={s.tagRed}>{k}</span>)}
-              </div>
+
+          {/* Fallback keyword coverage */}
+          {covered_concepts.length === 0 && missing_concepts.length === 0 && (matched_keywords?.length > 0 || missing_keywords?.length > 0) && (
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {matched_keywords?.length > 0 && (
+                <div style={s.conceptGroup}>
+                  <span style={{ color: '#22c55e', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Covered</span>
+                  <div style={s.tagWrap}>{matched_keywords.map(k => <span key={k} style={s.tagGreen}>{k}</span>)}</div>
+                </div>
+              )}
+              {missing_keywords?.length > 0 && (
+                <div style={s.conceptGroup}>
+                  <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Missed</span>
+                  <div style={s.tagWrap}>{missing_keywords.map(k => <span key={k} style={s.tagRed}>{k}</span>)}</div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Penalties */}
-      {penalties_applied?.length > 0 && (
-        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', marginBottom: '0.875rem' }}>
-          <div style={{ fontSize: '10px', fontWeight: '700', color: '#f87171', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Penalties
-          </div>
-          {penalties_applied.map((p, i) => (
-            <div key={i} style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>— {p}</div>
-          ))}
-        </div>
-      )}
-
-      {/* AI Feedback */}
-      {reasoning && (
-        <div style={s.reasoningBox}>
-          <span style={{ color: '#6366f1', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Feedback</span>
-          <p style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.6', marginTop: '4px', fontStyle: 'italic' }}>{reasoning}</p>
-        </div>
-      )}
-
-      {/* Comparison feedback */}
-      {comparison_feedback && (
-        <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', marginBottom: '0.875rem' }}>
-          <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#aaa', lineHeight: '1.6' }}>{comparison_feedback}</p>
-          {improvement_tip && (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '6px' }}>
-              <span style={{ fontSize: '13px' }}>💡</span>
-              <p style={{ margin: 0, fontSize: '12px', color: '#a5b4fc', lineHeight: '1.5' }}>{improvement_tip}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Your answer */}
-      <p style={s.answerTranscript}>
-        {isLong(candidateText) && !expandAnswer ? preview(candidateText) : candidateText}
-        {isLong(candidateText) && (
-          <button onClick={() => setExpandAnswer(e => !e)} style={{ marginLeft: '6px', fontSize: '11px', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            {expandAnswer ? 'less' : 'more'}
-          </button>
-        )}
-        {was_corrected && <span style={{ color: '#444', fontSize: '11px', marginLeft: '6px' }}>(STT corrected)</span>}
-      </p>
-
-      {/* Ideal answer toggle */}
-      {ideal_answer && (
-        <div style={{ marginTop: '0.75rem' }}>
-          <button
-            onClick={() => setShowIdeal(v => !v)}
-            style={{
-              width: '100%', padding: '8px', borderRadius: '8px',
-              background: showIdeal ? 'rgba(251,191,36,0.07)' : 'rgba(255,255,255,0.02)',
-              border: `1px solid ${showIdeal ? 'rgba(251,191,36,0.25)' : '#1e1e1e'}`,
-              color: showIdeal ? '#fbbf24' : '#444',
-              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              transition: 'all 0.15s',
-            }}
-          >
-            {showIdeal ? '▲' : '▼'} {showIdeal ? 'Hide' : 'Show'} Ideal Answer
-          </button>
-
-          {showIdeal && (
-            <div style={{ marginTop: '10px', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '10px', padding: '1rem' }}>
-              <span style={{ fontSize: '10px', color: 'rgba(251,191,36,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
-                Ideal Answer
+          {/* Score breakdown pills */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {keyword_score != null && (
+              <span style={{ ...s.statPill, background: keyword_score >= 60 ? '#0f2a1a' : '#2a0f0f', color: keyword_score >= 60 ? '#86efac' : '#fca5a5', border: `1px solid ${keyword_score >= 60 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+                Keywords {Math.round(keyword_score)}%
               </span>
-              <p style={{ fontSize: '13px', color: '#bbb', lineHeight: '1.7', margin: '0 0 10px' }}>
-                {isLong(ideal_answer) && !expandIdeal ? preview(ideal_answer) : ideal_answer}
-                {isLong(ideal_answer) && (
-                  <button onClick={() => setExpandIdeal(e => !e)} style={{ marginLeft: '6px', fontSize: '11px', color: '#fbbf24', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                    {expandIdeal ? 'less' : 'more'}
-                  </button>
-                )}
-              </p>
+            )}
+            {structure_score != null && (
+              <span style={{ ...s.statPill, background: structure_score >= 60 ? '#0f2a1a' : '#2a0f0f', color: structure_score >= 60 ? '#86efac' : '#fca5a5', border: `1px solid ${structure_score >= 60 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+                Structure {Math.round(structure_score)}%
+              </span>
+            )}
+            {wpm > 0 && <span style={s.statPill}>{wpm} WPM</span>}
+            <span style={s.statPill}>{word_count} words</span>
+            {filler_words?.length > 0 && (
+              <span style={{ ...s.statPill, background: '#2a0f0f', color: '#fca5a5', borderColor: '#5a1a1a' }}>
+                Fillers: {filler_words.join(', ')}
+              </span>
+            )}
+          </div>
 
-              {key_concepts.length > 0 && (
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '5px' }}>Must cover</span>
-                  {key_concepts.map(c => (
-                    <span key={c} style={{ display: 'inline-block', padding: '2px 7px', borderRadius: '4px', fontSize: '11px', background: 'rgba(251,191,36,0.08)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.15)', margin: '0 3px 3px 0' }}>{c}</span>
-                  ))}
-                </div>
+          {/* Penalties */}
+          {penalties_applied?.length > 0 && (
+            <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', color: '#f87171', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Penalties</div>
+              {penalties_applied.map((p, i) => <div key={i} style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>— {p}</div>)}
+            </div>
+          )}
+
+          {/* AI feedback + comparison */}
+          {(reasoning || comparison_feedback) && (
+            <div style={{ background: '#0d0d0d', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '10px', padding: '1rem' }}>
+              {reasoning && (
+                <>
+                  <span style={{ color: '#6366f1', fontSize: '11px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Feedback</span>
+                  <p style={{ color: '#aaa', fontSize: '13px', lineHeight: '1.6', margin: '4px 0 0', fontStyle: 'italic' }}>{reasoning}</p>
+                </>
               )}
-
-              {common_mistakes.length > 0 && (
-                <div>
-                  <span style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '5px' }}>Common mistakes</span>
-                  {common_mistakes.map((m, i) => (
-                    <div key={i} style={{ fontSize: '11px', color: '#555', marginBottom: '3px' }}>⚠ {m}</div>
-                  ))}
+              {comparison_feedback && (
+                <div style={{ marginTop: reasoning ? '10px' : 0, paddingTop: reasoning ? '10px' : 0, borderTop: reasoning ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#aaa', lineHeight: '1.6' }}>{comparison_feedback}</p>
+                  {improvement_tip && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '6px' }}>
+                      <span style={{ fontSize: '13px' }}>💡</span>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#a5b4fc', lineHeight: '1.5' }}>{improvement_tip}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Fallback stats row */}
-      {!keyword_score && (
-        <div style={s.answerStats}>
-          {wpm > 0 && <span style={s.statPill}>{wpm} WPM</span>}
-          <span style={s.statPill}>{word_count} words</span>
-          {filler_words?.length > 0 && (
-            <span style={{ ...s.statPill, background: '#2a0f0f', color: '#fca5a5', borderColor: '#5a1a1a' }}>
-              Fillers: {filler_words.join(', ')}
-            </span>
+          {/* Ideal answer */}
+          {ideal_answer && (
+            <div>
+              <button
+                onClick={() => setShowIdeal(v => !v)}
+                style={{
+                  width: '100%', padding: '8px', borderRadius: '8px',
+                  background: showIdeal ? 'rgba(251,191,36,0.07)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${showIdeal ? 'rgba(251,191,36,0.25)' : '#1e1e1e'}`,
+                  color: showIdeal ? '#fbbf24' : '#444',
+                  fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  transition: 'all 0.15s', fontFamily: 'inherit',
+                }}
+              >
+                {showIdeal ? '▲' : '▼'} {showIdeal ? 'Hide' : 'Show'} Ideal Answer
+              </button>
+              {showIdeal && (
+                <div style={{ marginTop: '10px', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '10px', padding: '1rem' }}>
+                  <span style={{ fontSize: '10px', color: 'rgba(251,191,36,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>Ideal Answer</span>
+                  <p style={{ fontSize: '13px', color: '#bbb', lineHeight: '1.7', margin: '0 0 10px' }}>
+                    {isLong(ideal_answer) && !expandIdeal ? preview(ideal_answer) : ideal_answer}
+                    {isLong(ideal_answer) && (
+                      <button onClick={() => setExpandIdeal(e => !e)} style={{ marginLeft: '6px', fontSize: '11px', color: '#fbbf24', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                        {expandIdeal ? 'less' : 'more'}
+                      </button>
+                    )}
+                  </p>
+                  {key_concepts.length > 0 && (
+                    <div style={{ marginBottom: '8px' }}>
+                      <span style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '5px' }}>Must cover</span>
+                      {key_concepts.map(c => (
+                        <span key={c} style={{ display: 'inline-block', padding: '2px 7px', borderRadius: '4px', fontSize: '11px', background: 'rgba(251,191,36,0.08)', color: '#fcd34d', border: '1px solid rgba(251,191,36,0.15)', margin: '0 3px 3px 0' }}>{c}</span>
+                      ))}
+                    </div>
+                  )}
+                  {common_mistakes.length > 0 && (
+                    <div>
+                      <span style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '5px' }}>Common mistakes</span>
+                      {common_mistakes.map((m, i) => <div key={i} style={{ fontSize: '11px', color: '#555', marginBottom: '3px' }}>⚠ {m}</div>)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
+
         </div>
       )}
     </div>
