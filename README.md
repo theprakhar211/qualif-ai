@@ -1,39 +1,74 @@
-# Qualif-AI — AI-Powered Voice Interview Simulator
+# Qualif-AI — AI Interview Simulator
 
-> Practice job interviews with a real AI interviewer. Speak your answers, get evaluated instantly, track your progress over time.
+> **Practice interviews with an AI that actually listens.**
 
-**Live Demo:** [qualif-smart-ai.vercel.app](https://qualif-smart-ai.vercel.app)
+Qualif-AI is a full-stack voice-first mock interview simulator. Speak your answers aloud, get evaluated by AI, and track your progress over time — with a skill graph that shows exactly what to work on next.
 
----
-
-## What is Qualif-AI?
-
-Qualif-AI is a full-stack voice-based mock interview simulator built for students and job seekers. Unlike static question banks or basic chatbots, Qualif-AI conducts a dynamic, adaptive interview — asking follow-up questions based on your actual answers, evaluating your responses with AI, and giving you detailed feedback on what you knew and what you missed.
+**Live:** [qualif-smart-ai.vercel.app](https://qualif-smart-ai.vercel.app)
 
 ---
 
-## Key Features
+## Screenshots
 
-**Voice-first interview experience**
-Speak your answers naturally. The browser's speech recognition captures your words in real time with a live transcript. A text input fallback is available for technical answers or when the mic is unavailable.
+| Landing | Login |
+|---|---|
+| ![Landing page](docs/screenshots/landing.png) | ![Login page](docs/screenshots/login.png) |
 
-**AI-generated questions with Groq**
-Every question is generated fresh by Llama 3 via the Groq API — not pulled from a static database. Questions adapt based on your role, selected topics, and performance. Follow-up questions are contextually generated from your previous answer.
+> Add more screenshots to `docs/screenshots/` — interview screen, dashboard, skill graph, session detail.
 
-**Resume-aware personalization**
-Upload your PDF resume. Groq extracts your skills, technologies, and experience, then personalizes every question to your background. A candidate with React experience gets different questions than one with a data science background.
+---
 
-**Adaptive difficulty**
-The interview tracks your performance in real time. Strong answers push the difficulty up. Weak answers bring it down. The system adapts every 3 questions.
+## What Makes It Different
 
-**Batch AI evaluation**
-At the end of the interview, all answers are sent to Groq in a single batch call. Each answer is scored 0–100 with reasoning, concepts you covered, and concepts you missed. Speech recognition errors are automatically corrected before evaluation.
+Most mock interview tools give you a list of questions and a text box. Qualif-AI conducts an actual interview:
 
-**Confidence analysis**
-Voice answers are analyzed for filler words (um, uh, like, basically), words per minute, and answer length. These signals contribute to your final score alongside content quality.
+- **Speaks the question aloud** using browser TTS — you respond by voice
+- **Asks follow-up questions** based on what you said, not a fixed script
+- **Resume-aware** — upload your CV and the Complete Interview asks about your specific projects and experience
+- **Hybrid scoring** — every answer is scored by both Groq LLM and a deterministic layer (keyword matching, answer structure, depth detection) for consistent, explainable results
+- **Skill graph** — mastery per skill updates after every session, and the next question targets your weakest area
 
-**Performance dashboard**
-A full dashboard tracks every interview session. View your score trend over time, a breakdown of your weakest concepts, and per-topic average scores. Click any session to see the full per-answer AI evaluation with reasoning and concept tags.
+---
+
+## Features
+
+### Two Interview Modes
+- **Quick Practice** — 8 adaptive technical questions, follow-ups every other question, no resume needed
+- **Complete Interview** — structured 4-phase flow: Introduction → Resume Review → Technical → Behavioural
+
+### Voice-First Experience
+- Browser Web Speech API for both STT and TTS — zero setup, works on Chrome/Edge
+- Switch to typed input at any time
+- WPM tracking, filler word detection
+
+### AI Evaluation
+- Single Groq batch call evaluates all answers at once (~5–8s for 8 answers)
+- Phase-aware scoring rubrics — intro scored on communication, technical on accuracy, behavioural on STAR format
+- STT error correction built into evaluation prompt
+
+### Hybrid Scoring Engine
+- LLM score (Llama 3.3 70B) blended with deterministic signals
+- Keyword bank per topic — checks for expected technical terms
+- Structure detection — intro / explanation / conclusion patterns
+- Depth penalty — penalises genuinely thin or vague answers
+- Blend ratios are phase-aware: LLM carries 72–80% weight, deterministic 20–28%
+
+### Answer Benchmarking
+- Ideal answer generated once per question by Groq, cached in MongoDB
+- Your answer compared against ideal: covered concepts ✓, missing ✗, extras +
+- Similarity score, improvement tip, common mistakes
+
+### Skill Graph
+- 35+ skills across 7 categories: Data Structures, Algorithms, System Design, Languages, Concepts, Communication, Behavioural
+- Exponentially weighted mastery (recent sessions weighted more)
+- Adaptive targeting — next question targets weakest unpractised skill
+- Dashboard shows category breakdown, weakest areas, next target
+
+### Dashboard
+- Score trend chart across sessions
+- Weak areas — concepts most frequently missed
+- Performance by topic
+- Per-session detail with collapsible answer breakdown
 
 ---
 
@@ -41,102 +76,43 @@ A full dashboard tracks every interview session. View your score trend over time
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, Recharts |
-| Backend | FastAPI (Python), async |
-| Database | MongoDB Atlas (Motor async driver) |
-| AI / LLM | Groq API — Llama 3.1 8B + Llama 3.3 70B |
-| Speech Input | Web Speech API (browser-native) |
-| Speech Output | Web SpeechSynthesis API (browser-native) |
-| Resume Parsing | PyMuPDF + Groq |
-| Auth | JWT (PyJWT + bcrypt) |
-| Deployment | Vercel (frontend) + Render (backend) |
+| Frontend | React 18 + Vite, deployed on Vercel |
+| Backend | FastAPI (Python 3.11), deployed on Render |
+| Database | MongoDB Atlas (M0 free tier) |
+| AI | Groq API — Llama 3.1 8B (fast) + Llama 3.3 70B (smart) |
+| Voice | Browser Web Speech API (SpeechRecognition + SpeechSynthesis) |
+| Auth | JWT (PyJWT) + bcrypt |
 
 ---
 
-## How It Works
+## Architecture
 
 ```
-User selects role, topics, difficulty → optionally uploads resume
-                    ↓
-Groq generates first question (personalized to resume if uploaded)
-                    ↓
-User answers by voice or text
-                    ↓
-Answer stored instantly (no AI call during interview → fast flow)
-                    ↓
-Repeat for 8 questions with adaptive difficulty and follow-ups
-                    ↓
-Interview ends → single Groq batch call evaluates all 8 answers
-                    ↓
-Scores, reasoning, concepts covered/missed shown on dashboard
+┌─────────────────┐     HTTPS      ┌─────────────────────────┐
+│   React (Vite)  │ ─────────────► │   FastAPI (Python 3.11) │
+│   Vercel        │                │   Render                │
+└─────────────────┘                └────────────┬────────────┘
+                                                │
+                              ┌─────────────────┼─────────────────┐
+                              │                 │                 │
+                    ┌─────────▼──────┐  ┌───────▼──────┐  ┌──────▼──────┐
+                    │  MongoDB Atlas │  │  Groq API    │  │  Hybrid     │
+                    │  Sessions      │  │  Llama 3.1/  │  │  Evaluator  │
+                    │  Users         │  │  Llama 3.3   │  │  (local)    │
+                    │  Skill Graphs  │  └──────────────┘  └─────────────┘
+                    │  Ideal Answers │
+                    └────────────────┘
 ```
 
----
+### Key Architecture Decisions
 
-## Screenshots
+**Batch evaluation** — all answers evaluated in a single Groq API call at the end of the interview (~5–8s). Original per-answer evaluation took ~60s total with 8 sequential calls.
 
-> Add screenshots here after recording your demo
+**Hybrid scoring** — pure LLM scoring is fast but inconsistent. The deterministic layer adds stability: the same answer always produces the same keyword score regardless of LLM variance.
 
-| Setup | Interview | Dashboard |
-|---|---|---|
-| *(screenshot)* | *(screenshot)* | *(screenshot)* |
+**Ideal answer caching** — ideal answers are generated once per question (fingerprinted by question + role + difficulty) and cached in MongoDB. Repeat sessions hit the cache with no API call.
 
----
-
-## Running Locally
-
-### Prerequisites
-
-- Python 3.11
-- Node.js 18+
-- MongoDB (local) or MongoDB Atlas account
-- Groq API key — free at [console.groq.com](https://console.groq.com)
-
-### Backend setup
-
-```bash
-cd backend
-python -m venv venv
-source venv/Scripts/activate  # Windows
-# source venv/bin/activate    # Mac/Linux
-
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-```
-
-Create `backend/.env`:
-
-```
-MONGO_URI=mongodb://localhost:27017
-DB_NAME=qualifai
-JWT_SECRET=your-secret-key
-JWT_EXPIRE_HOURS=24
-GROQ_API_KEY=gsk_your_key_here
-GROQ_FAST_MODEL=llama-3.1-8b-instant
-GROQ_SMART_MODEL=llama-3.3-70b-versatile
-```
-
-Seed the question bank:
-
-```bash
-PYTHONPATH=. python data/seed.py
-```
-
-Start the server:
-
-```bash
-uvicorn main:app --reload
-```
-
-### Frontend setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173)
+**Browser TTS/STT** — tried MeloTTS and Coqui TTS. Browser Web Speech API: zero setup, works everywhere Chrome/Edge supports it. Groq corrects obvious STT errors during evaluation.
 
 ---
 
@@ -145,47 +121,168 @@ Open [http://localhost:5173](http://localhost:5173)
 ```
 qualif-ai/
 ├── backend/
-│   ├── main.py                  # FastAPI entry point
-│   ├── config.py                # Settings and env vars
-│   ├── database.py              # MongoDB connection
+│   ├── main.py                  # FastAPI entry, CORS, router registration
+│   ├── config.py                # Pydantic settings, reads .env
+│   ├── database.py              # Motor async MongoDB connection + indexes
 │   ├── routers/
-│   │   ├── auth.py              # Register, login, JWT
-│   │   ├── interview.py         # Session management, Q&A flow
-│   │   ├── dashboard.py         # Results, stats, insights
-│   │   └── resume.py            # PDF upload and parsing
+│   │   ├── auth.py              # register, login, /me — JWT
+│   │   ├── interview.py         # start, submit-answer, next-question, evaluate, end
+│   │   ├── dashboard.py         # sessions, stats, insights, skill graph, reset
+│   │   └── resume.py            # PDF upload → Groq parse → store on user
 │   ├── services/
-│   │   ├── groq_service.py      # Groq API calls + batch evaluation
-│   │   ├── question_engine.py   # Question and follow-up generation
-│   │   └── resume_parser.py     # PDF text extraction + parsing
-│   └── data/
-│       └── seed.py              # Question bank seeder
-└── frontend/
-    └── src/
-        ├── pages/
-        │   ├── Login.jsx
-        │   ├── Register.jsx
-        │   ├── Setup.jsx        # Role, topics, resume upload
-        │   ├── Interview.jsx    # Voice interview flow
-        │   └── Dashboard.jsx    # Results and analytics
-        ├── hooks/
-        │   ├── useSpeechRecognition.js
-        │   └── useSpeechSynthesis.js
-        └── services/
-            └── api.js           # Axios client
+│   │   ├── groq_service.py      # ask_groq(), batch_evaluate()
+│   │   ├── hybrid_evaluator.py  # keyword scoring, structure detection, blend
+│   │   ├── skill_graph.py       # SkillNode, SkillGraph, mastery, adaptive targeting
+│   │   ├── answer_benchmark.py  # ideal answer generation + comparison
+│   │   ├── question_engine.py   # generate_question(), adaptive wrapper
+│   │   ├── resume_parser.py     # PyMuPDF extraction + Groq structured parse
+│   │   ├── auth_service.py      # hash_password, create_token, decode_token
+│   │   └── dependencies.py      # get_current_user FastAPI dependency
+│   └── tests/
+│       ├── conftest.py
+│       ├── test_hybrid_evaluator.py   # 60+ unit tests
+│       └── test_skill_graph.py        # 40+ unit tests
+├── frontend/
+│   └── src/
+│       ├── pages/
+│       │   ├── Landing.jsx
+│       │   ├── Login.jsx
+│       │   ├── Register.jsx
+│       │   ├── Setup.jsx
+│       │   ├── Interview.jsx    # State machine, voice flow, TTS/STT
+│       │   └── Dashboard.jsx    # Charts, skill graph, session detail
+│       ├── hooks/
+│       │   ├── useSpeechRecognition.js
+│       │   └── useSpeechSynthesis.js
+│       └── services/
+│           └── api.js           # Axios client, retry on cold start
+└── README.md
 ```
 
 ---
 
-## Why I Built This
+## Local Setup
 
-Interview preparation tools either give you static question lists with no feedback, or charge a premium for AI evaluation. I wanted to build something that actually simulates a real interview — dynamic questions, voice interaction, adaptive difficulty, and meaningful AI feedback — completely free to use.
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- MongoDB Atlas account (free M0 tier)
+- Groq API key (free tier: 14,400 req/day)
 
-This project was built as part of my third-year Computer Science coursework to explore full-stack development, LLM integration, and voice interfaces.
+### Backend
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+```
+
+Create `backend/.env`:
+```env
+MONGO_URI=mongodb+srv://...
+DB_NAME=qualifai
+JWT_SECRET=your_random_32_plus_char_string_here
+JWT_EXPIRE_HOURS=24
+GROQ_API_KEY=gsk_...
+GROQ_FAST_MODEL=llama-3.1-8b-instant
+GROQ_SMART_MODEL=llama-3.3-70b-versatile
+FRONTEND_URL=http://localhost:5173
+```
+
+```bash
+uvicorn main:app --reload
+# API running at http://localhost:8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env`:
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+```bash
+npm run dev
+# App running at http://localhost:5173
+```
+
+### Tests
+
+```bash
+cd backend
+pip install pytest
+pytest
+# 103 passed
+```
+
+---
+
+## Deployment
+
+| Service | What | URL |
+|---|---|---|
+| Vercel | Frontend | qualif-smart-ai.vercel.app |
+| Render | Backend | qualifai-backend.onrender.com |
+| MongoDB Atlas | Database | M0 free cluster |
+
+**Render build command:**
+```
+pip install -r requirements.txt && python -m spacy download en_core_web_sm
+```
+
+**Render start command:**
+```
+python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+Python version pinned in `backend/runtime.txt`: `python-3.11.9`
+
+---
+
+## Environment Variables
+
+### Backend (Render)
+| Variable | Description |
+|---|---|
+| `MONGO_URI` | MongoDB Atlas SRV connection string |
+| `DB_NAME` | Database name (`qualifai`) |
+| `JWT_SECRET` | Random string, 32+ characters |
+| `JWT_EXPIRE_HOURS` | Token expiry (`24`) |
+| `GROQ_API_KEY` | Groq API key (`gsk_...`) |
+| `GROQ_FAST_MODEL` | `llama-3.1-8b-instant` |
+| `GROQ_SMART_MODEL` | `llama-3.3-70b-versatile` |
+| `FRONTEND_URL` | Vercel deployment URL |
+
+### Frontend (Vercel)
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Render backend URL |
+
+---
+
+## Known Limitations
+
+- **Browser STT only** — no Whisper integration. Technical terms sometimes misrecognised; Groq corrects obvious errors during evaluation.
+- **Render cold start** — free tier sleeps after 15 min idle (~30s wake). Mitigated with UptimeRobot pinging `/health` every 5 minutes.
+- **Groq free tier** — 14,400 requests/day. Sufficient for personal use and portfolio demos.
+- **Voice requires Chrome/Edge** — Firefox does not support Web Speech API.
+
+---
+
+## Author
+
+**Prakhar Sharma**
+GitHub: [@theprakhar211](https://github.com/theprakhar211)
 
 ---
 
 ## License
 
-Copyright © 2026 Prakhar. All Rights Reserved.
-
-Unauthorized copying, forking, or distribution of this software is strictly prohibited.
+MIT
