@@ -1,5 +1,7 @@
 # Qualif-AI — AI Interview Simulator
 
+![Tests](https://github.com/theprakhar211/qualif-ai/actions/workflows/test.yml/badge.svg)
+
 > **Practice interviews with an AI that actually listens.**
 
 Qualif-AI is a full-stack voice-first mock interview simulator. Speak your answers aloud, get evaluated by AI, and track your progress over time — with a skill graph that shows exactly what to work on next.
