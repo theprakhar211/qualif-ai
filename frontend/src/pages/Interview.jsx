@@ -179,7 +179,7 @@ export default function Interview() {
     if (state !== STATES.LISTENING) return
     if (inputMode === 'text' && isListening) stopListening()
     else if (inputMode === 'voice' && !isListening) setTimeout(() => startListening(), 300)
-  }, [inputMode])
+  }, [inputMode, state, isListening, startListening, stopListening])
 
   const handleStopAndSubmit = async (mode = inputMode, typed = typedAnswer) => {
     if (mode === 'voice') stopListening()
@@ -268,8 +268,8 @@ export default function Interview() {
   if (state === STATES.READY) {
     const pending = pendingQuestionRef.current
     return (
-      <div style={s.page}>
-        <div style={s.centreCard}>
+      <div style={{ ...s.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ ...s.centreCard, margin: '0' }}>
           <div style={{ fontSize: '32px', marginBottom: '1rem' }}>🎤</div>
           <h2 style={{ marginBottom: '0.5rem', fontSize: '20px' }}>Ready to start?</h2>
           <p style={{ color: '#666', marginBottom: '0.5rem', fontSize: '14px' }}>
@@ -294,8 +294,8 @@ export default function Interview() {
 
   // ── Error screen ──
   if (state === STATES.ERROR) return (
-    <div style={s.page}>
-      <div style={s.centreCard}>
+    <div style={{ ...s.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ ...s.centreCard, margin: '0' }}>
         <div style={{ fontSize: '32px', marginBottom: '1rem' }}>⚠</div>
         <h2 style={{ marginBottom: '0.5rem' }}>Interview interrupted</h2>
         <p style={{ color: '#666', marginBottom: '2rem', lineHeight: '1.6' }}>{fatalError}</p>
@@ -309,8 +309,8 @@ export default function Interview() {
 
   // ── Done screen ──
   if (state === STATES.DONE) return (
-    <div style={s.page}>
-      <div style={s.centreCard}>
+    <div style={{ ...s.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ ...s.centreCard, margin: '0' }}>
         {evaluating && (
           <>
             <div style={s.spinner} />
