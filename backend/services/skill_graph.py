@@ -77,10 +77,10 @@ TOPIC_TO_SKILL: dict[str, str] = {
     "shortest path": "Graph Algorithms",
     "traversal":     "Graph Algorithms",
     "dp":            "Dynamic Programming",
-    "time complexity": "Algorithms",
-    "space complexity":"Algorithms",
-    "big o":         "Algorithms",
-    "algorithm":     "Algorithms",
+    "time complexity": "Sorting",     # most time complexity Qs are about sorting/searching
+    "space complexity": "Recursion",   # most space complexity Qs are about recursion
+    "big o":           "Sorting",
+    "algorithm":       "Searching",
     # System Design
     "microservice":  "Microservices",
     "load balanc":   "Load Balancing",
@@ -95,10 +95,10 @@ TOPIC_TO_SKILL: dict[str, str] = {
     "api":           "APIs & REST",
     "rest":          "APIs & REST",
     "graphql":       "APIs & REST",
-    "scalab":        "System Design",
-    "system design": "System Design",
-    "cdn":           "System Design",
-    "distributed":   "System Design",
+    "scalab":        "Microservices",  # scalability questions → Microservices
+    "system design": "Databases",      # general system design → Databases as anchor skill
+    "cdn":           "CDN",
+    "distributed":   "Databases",
     # Languages
     "python":        "Python",
     "javascript":    "JavaScript",
@@ -112,7 +112,7 @@ TOPIC_TO_SKILL: dict[str, str] = {
     "parallel":      "Concurrency",
     "deadlock":      "Concurrency",
     "mutex":         "Concurrency",
-    "object.orient": "OOP",
+    "object oriented": "OOP",
     "oop":           "OOP",
     "inheritance":   "OOP",
     "polymorphism":  "OOP",
@@ -145,16 +145,24 @@ TOPIC_TO_SKILL: dict[str, str] = {
 def infer_skill(question_text: str, topic: str | None = None) -> str | None:
     """
     Map a question/topic string to a canonical skill name.
-    Searches topic first (exact), then full question text (substring).
+    Topic is checked first with exact/prefix match.
+    Falls back to searching full question text if topic yields nothing.
     """
-    # Build a combined search string from both topic and question
-    search = ((topic or "") + " " + (question_text or "")).lower()
+    # 1. Try topic first (strict — longer fragments first)
+    if topic:
+        topic_lower = topic.strip().lower()
+        sorted_fragments = sorted(TOPIC_TO_SKILL.keys(), key=len, reverse=True)
+        for fragment in sorted_fragments:
+            if fragment in topic_lower:
+                return TOPIC_TO_SKILL[fragment]
 
-    # Longer/more specific fragments first to avoid false matches
-    sorted_fragments = sorted(TOPIC_TO_SKILL.keys(), key=len, reverse=True)
-    for fragment in sorted_fragments:
-        if fragment in search:
-            return TOPIC_TO_SKILL[fragment]
+    # 2. Fall back to searching question text
+    if question_text:
+        q_lower = question_text.lower()
+        sorted_fragments = sorted(TOPIC_TO_SKILL.keys(), key=len, reverse=True)
+        for fragment in sorted_fragments:
+            if fragment in q_lower:
+                return TOPIC_TO_SKILL[fragment]
 
     return None
 

@@ -181,11 +181,11 @@ def compute_depth_penalty(answer: str) -> tuple[float, list[str]]:
 
     vague_hits = sum(1 for p in VAGUE_PATTERNS if re.search(
         p, answer, re.IGNORECASE))
-    if vague_hits >= 3:
+    if vague_hits >= 2:
         multiplier -= 0.15
         penalties.append("Multiple vague or filler phrases detected")
     elif vague_hits >= 1:
-        # Single "I think" or "maybe" — not penalised, just noted implicitly
+        # Single vague pattern — not penalised, just noted implicitly
         pass
 
     return max(0.0, multiplier), penalties
