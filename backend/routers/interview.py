@@ -19,7 +19,7 @@ from database import db_instance, serialize_doc
 
 router = APIRouter()
 
-MAX_QUESTIONS = 4
+MAX_QUESTIONS = 8
 
 PHASE_MAP = {
     "intro":       PhaseType.INTRO,

@@ -42,6 +42,6 @@ app.include_router(tts.router,        prefix="/tts",        tags=["TTS"])
 app.include_router(resume.router, prefix="/resume", tags=["Resume"])
 
 
-@app.get("/health", tags=["Health"])
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok", "service": "Qualif-AI"}
