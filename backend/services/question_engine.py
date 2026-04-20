@@ -3,6 +3,13 @@ from services.resume_parser import build_resume_context
 from database import db_instance
 from loguru import logger
 import random
+import hashlib
+
+
+def question_hash(question_text: str) -> str:
+    """8-character hash to uniquely fingerprint a question for deduplication."""
+    return hashlib.sha256(question_text.strip().lower().encode()).hexdigest()[:8]
+
 
 SYSTEM_PROMPT = """You are a professional technical interviewer.
 Your job is to ask clear, concise interview questions.
@@ -97,7 +104,8 @@ async def generate_question(
     topic: str,
     difficulty: str,
     asked_questions: list = [],
-    resume_data: dict = None
+    resume_data: dict = None,
+    seen_question_hashes: list = [],
 ) -> str:
     """Generate technical questions — core of both Quick Practice and Complete Interview."""
 
@@ -105,6 +113,11 @@ async def generate_question(
     if asked_questions:
         avoid = "\nDo NOT ask any of these already-asked questions:\n" + \
                 "\n".join(f"- {q}" for q in asked_questions[-5:])
+
+    # Add cross-session deduplication hint
+    seen_note = ""
+    if seen_question_hashes:
+        seen_note = f"\nThis candidate has already answered {len(seen_question_hashes)} questions across previous sessions. Generate something DIFFERENT — avoid repeating concepts they have already been asked about."
 
     resume_context = ""
     if resume_data:
@@ -114,7 +127,7 @@ async def generate_question(
             resume_context += "\nPersonalize the question to their background where naturally relevant."
 
     prompt = f"""Generate a {difficulty} difficulty {topic} interview question
-for a {role} position.{avoid}{resume_context}
+for a {role} position.{avoid}{seen_note}{resume_context}
 
 IMPORTANT RULES:
 - Ask CONCEPTUAL or DESIGN questions only
@@ -128,7 +141,8 @@ IMPORTANT RULES:
     question = await ask_groq(prompt, SYSTEM_PROMPT)
 
     if not question:
-        logger.warning("Groq unavailable for question generation, using fallback.")
+        logger.warning(
+            "Groq unavailable for question generation, using fallback.")
         return await get_fallback_question(role, difficulty, asked_questions)
 
     return question
@@ -142,6 +156,7 @@ async def generate_question_adaptive(
     resume_data: dict = None,
     user_id: str = None,
     session_skills_covered: list = None,
+    seen_question_hashes: list = [],
 ) -> tuple[str, str]:
     """
     Adaptive wrapper around generate_question().
@@ -154,13 +169,16 @@ async def generate_question_adaptive(
         try:
             from services.skill_graph import load_skill_graph, infer_skill
             graph = await load_skill_graph(db_instance, user_id)
-            target_skill = graph.get_target_skill(attempted_this_session=session_skills_covered)
+            target_skill = graph.get_target_skill(
+                attempted_this_session=session_skills_covered)
             if target_skill:
                 resolved_topic = target_skill
                 difficulty = _infer_difficulty(graph.mastery_for(target_skill))
-                logger.info(f"Adaptive targeting: skill={target_skill} difficulty={difficulty}")
+                logger.info(
+                    f"Adaptive targeting: skill={target_skill} difficulty={difficulty}")
         except Exception as e:
-            logger.warning(f"Skill graph adaptive targeting failed, using original topic: {e}")
+            logger.warning(
+                f"Skill graph adaptive targeting failed, using original topic: {e}")
 
     question = await generate_question(
         role=role,
@@ -168,6 +186,7 @@ async def generate_question_adaptive(
         difficulty=difficulty,
         asked_questions=asked_questions,
         resume_data=resume_data,
+        seen_question_hashes=seen_question_hashes,
     )
     return question, resolved_topic
 
@@ -226,7 +245,7 @@ async def get_fallback_question(
     difficulty: str,
     asked_questions: list = []
 ) -> str:
-    query  = {"role": role, "difficulty": difficulty}
+    query = {"role": role, "difficulty": difficulty}
     cursor = db_instance.questions_col.find(query)
     questions = await cursor.to_list(length=50)
 

@@ -180,7 +180,7 @@ async def reset_progress(current_user: dict = Depends(get_current_user)):
 
     await db_instance.users_col.update_one(
         {"_id": current_user["_id"]},
-        {"$unset": {"skill_graph": ""}}
+        {"$unset": {"skill_graph": "", "seen_question_hashes": ""}}
     )
 
     logger.info(

@@ -9,7 +9,7 @@ from services.dependencies import get_current_user
 from services.question_engine import (
     generate_question, generate_question_adaptive, generate_followup,
     generate_intro_question, generate_resume_question,
-    generate_behavioural_question
+    generate_behavioural_question, question_hash
 )
 from services.groq_service import batch_evaluate
 from services.hybrid_evaluator import run_hybrid_evaluation, PhaseType
@@ -63,9 +63,12 @@ async def start_interview(
 
     # Only fetch resume for complete interviews — quick practice is topic-based only
     resume_data = {}
+    user = await db_instance.users_col.find_one({"_id": current_user["_id"]})
     if interview_type == 'complete':
-        user = await db_instance.users_col.find_one({"_id": current_user["_id"]})
         resume_data = user.get("resume", {}) if user else {}
+
+    # Load cross-session seen question hashes for deduplication
+    seen_hashes = (user or {}).get("seen_question_hashes", []) if user else []
 
     phase = get_phase(1, interview_type)
 
@@ -83,7 +86,16 @@ async def start_interview(
             resume_data=resume_data,
             user_id=user_id,
             session_skills_covered=[],
+            seen_question_hashes=seen_hashes,
         )
+
+    # Save hash of first question to user document (capped at 200)
+    first_hash = question_hash(first_question)
+    new_hashes = (seen_hashes + [first_hash])[-200:]
+    await db_instance.users_col.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": {"seen_question_hashes": new_hashes}}
+    )
 
     session_doc = {
         "user_id":               user_id,
@@ -162,6 +174,12 @@ async def next_question(
     user_id = str(current_user["_id"])
     session_skills_covered = session.get("session_skills_covered", [])
 
+    # Load seen question hashes for cross-session deduplication
+    user = await db_instance.users_col.find_one(
+        {"_id": current_user["_id"]}, {"seen_question_hashes": 1}
+    )
+    seen_hashes = (user or {}).get("seen_question_hashes", [])
+
     next_q_number = len(answers) + 2
 
     # Adaptive difficulty for technical phase
@@ -216,6 +234,7 @@ async def next_question(
                 resume_data=resume_data,
                 user_id=user_id,
                 session_skills_covered=session_skills_covered,
+                seen_question_hashes=seen_hashes,
             )
 
     # Track skill coverage for adaptive targeting
@@ -238,6 +257,14 @@ async def next_question(
             "$set":  update_fields,
         }
     )
+
+    # Save hash of this question to user document (capped at 200)
+    if question:
+        new_hashes = (seen_hashes + [question_hash(question)])[-200:]
+        await db_instance.users_col.update_one(
+            {"_id": current_user["_id"]},
+            {"$set": {"seen_question_hashes": new_hashes}}
+        )
 
     return {
         "question":    question,
