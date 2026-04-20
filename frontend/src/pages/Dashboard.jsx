@@ -268,7 +268,10 @@ function AnswerBenchmark({ answerData, index }) {
             )}
           </div>
           <p style={{ margin: 0, fontSize: '13px', color: '#888', lineHeight: '1.4',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+            overflow: 'hidden',
+            display: '-webkit-box', WebkitLineClamp: open ? 'unset' : 2,
+            WebkitBoxOrient: 'vertical',
+          }}>
             {question_text}
           </p>
           {/* Top missing keywords always visible */}

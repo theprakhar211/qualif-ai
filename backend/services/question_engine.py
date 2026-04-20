@@ -11,6 +11,81 @@ def question_hash(question_text: str) -> str:
     return hashlib.sha256(question_text.strip().lower().encode()).hexdigest()[:8]
 
 
+# ── Answer quality checks ─────────────────────────────────────────────────────
+
+# Option A: known non-answer strings (instant, no API call)
+_NON_ANSWER_EXACT = {
+    "no", "yes", "idk", "skip", "pass", "next", "none", "nope",
+    "i don't know", "i dont know", "not sure", "no idea", "i have no idea",
+    "answer here", "no answer", "nothing", "n/a", "na",
+}
+
+
+def _is_empty_answer_local(transcript: str) -> bool:
+    """
+    Option A — instant local check.
+    Returns True if the answer is clearly empty or a non-attempt.
+    """
+    t = transcript.strip().lower()
+    if not t:
+        return True
+    if t in _NON_ANSWER_EXACT:
+        return True
+    # Very short answers (under 6 words) that aren't meaningful
+    words = t.split()
+    if len(words) < 6:
+        # Allow short answers that contain substance signals
+        substance_signals = ["because", "since", "use",
+                             "lifo", "fifo", "o(", "stack", "queue"]
+        if not any(sig in t for sig in substance_signals):
+            return True
+    return False
+
+
+async def _is_substantive_answer_llm(
+    question: str,
+    answer: str,
+) -> bool:
+    """
+    Option B — Groq fast model classification.
+    Returns True if the answer genuinely attempts to address the question.
+    Only called if Option A passes.
+    """
+    prompt = f"""Interview question: {question}
+Candidate answer: {answer}
+
+Does this answer make a genuine attempt to address the question?
+Reply with only YES or NO."""
+
+    result = await ask_groq(prompt, model=None, temperature=0.0, max_tokens=5)
+    if not result:
+        return True  # if API fails, assume answer is ok — don't block flow
+    return result.strip().upper().startswith("Y")
+
+
+async def should_generate_followup(
+    question: str,
+    answer: str,
+) -> bool:
+    """
+    Combined Option A + B check.
+    Returns True only if the answer is substantive enough to follow up on.
+    """
+    # Option A — instant check
+    if _is_empty_answer_local(answer):
+        logger.info(f"Follow-up skipped: empty/non-answer detected locally")
+        return False
+
+    # Option B — LLM check
+    substantive = await _is_substantive_answer_llm(question, answer)
+    if not substantive:
+        logger.info(
+            f"Follow-up skipped: LLM classified answer as non-substantive")
+        return False
+
+    return True
+
+
 SYSTEM_PROMPT = """You are a professional technical interviewer.
 Your job is to ask clear, concise interview questions.
 Reply with ONLY the question itself — no preamble, no numbering, no explanation."""
@@ -205,9 +280,27 @@ async def generate_followup(
     previous_question: str,
     previous_answer: str,
     difficulty: str,
-    resume_data: dict = None
-) -> str:
-    """Generate contextual follow-up based on the previous answer."""
+    resume_data: dict = None,
+    topics: list = None,
+    seen_question_hashes: list = [],
+) -> tuple[str, bool]:
+    """
+    Generate a follow-up if the previous answer was substantive.
+    Returns (question_text, was_followup).
+    If answer wasn't substantive, returns a fresh question instead.
+    """
+    # Check answer quality before generating follow-up
+    if not await should_generate_followup(previous_question, previous_answer):
+        # Answer wasn't real — generate a fresh question on a new topic
+        topic = random.choice(topics) if topics else "General"
+        fresh = await generate_question(
+            role=role,
+            topic=topic,
+            difficulty=difficulty,
+            asked_questions=[previous_question],
+            seen_question_hashes=seen_question_hashes,
+        )
+        return fresh, False
 
     resume_context = ""
     if resume_data:
@@ -235,9 +328,10 @@ Reply with ONLY the follow-up question."""
     followup = await ask_groq(prompt, SYSTEM_PROMPT)
 
     if not followup:
-        return await generate_question(role, "General", difficulty, [previous_question])
+        fresh = await generate_question(role, "General", difficulty, [previous_question])
+        return fresh, False
 
-    return followup
+    return followup, True
 
 
 async def get_fallback_question(

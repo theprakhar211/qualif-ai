@@ -113,6 +113,7 @@ Rules:
 - Voice answers: be slightly more lenient with structure
 - Typed answers: evaluate more strictly on completeness
 - Be strict overall. Vague answers score below 50.
+- CRITICAL: If an answer is empty, a single word, or clearly not an attempt (e.g. "no", "idk", "answer here", "skip"), score it 0-5 and state plainly in reasoning that no answer was provided. Do NOT invent positive feedback or fabricate what the candidate "demonstrated".
 - Return ONLY the JSON array, no other text."""
 
     logger.info(

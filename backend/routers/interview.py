@@ -216,14 +216,17 @@ async def next_question(
 
         if use_followup and answers:
             last = answers[-1]
-            question = await generate_followup(
+            question, was_followup = await generate_followup(
                 role=role,
                 previous_question=last["question_text"],
                 previous_answer=last["transcript"],
                 difficulty=difficulty,
-                resume_data=resume_data
+                resume_data=resume_data,
+                topics=topics,
+                seen_question_hashes=seen_hashes,
             )
-            resolved_topic = last.get("topic")
+            # Only use previous answer's topic if it was a real follow-up
+            resolved_topic = last.get("topic") if was_followup else None
         else:
             topic = random.choice(topics)
             question, resolved_topic = await generate_question_adaptive(
