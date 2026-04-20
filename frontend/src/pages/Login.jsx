@@ -37,7 +37,7 @@ export default function Login() {
     <div style={s.page}>
       <div style={s.left}>
         <div style={s.leftInner}>
-          <img src="/logo.png" alt="Qualif-AI" style={{ height: '56px', objectFit: 'contain', marginBottom: '2rem' }} />
+          <img src="/logo.png" alt="Qualif-AI" style={{ height: '56px', objectFit: 'contain', marginBottom: '2rem', cursor: 'pointer' }} onClick={() => navigate('/')}/>
           <h2 style={s.tagline}>Practice interviews.<br />Land the job.</h2>
           <p style={s.taglineSub}>AI-powered mock interviews with real-time voice, adaptive questions, and detailed feedback.</p>
           <div style={s.bullets}>
