@@ -246,12 +246,9 @@ def blend_scores(
     """
     Blend LLM score (0–100) with deterministic score (normalised 0–1).
 
-    LLM is the primary signal. Deterministic acts as a secondary modifier:
-    - Strong keyword coverage → small upward pull on final score
-    - Thin / vague answer → small downward pull
-    - Maximum deterministic influence is ~28 pts (at dw=0.28, det=1.0 vs llm=0)
-
-    ── Blend ratios (LLM weight : deterministic weight) ──
+    LLM is the primary signal. Deterministic acts as a secondary modifier.
+    A hard score floor prevents inflated LLM scores (e.g. from injection)
+    from overriding clear non-answer signals from the deterministic layer.
     """
     blend: dict[PhaseType, tuple[float, float]] = {
         PhaseType.INTRO:       (0.80, 0.20),
@@ -264,7 +261,21 @@ def blend_scores(
 
     llm_norm = llm_score / 100.0
     blended = llm_norm * lw + det_score.raw_deterministic_score * dw
-    return round(min(100.0, max(0.0, blended * 100)), 1)
+    result = round(min(100.0, max(0.0, blended * 100)), 1)
+
+    # Hard floor: if deterministic signals all point to a non-answer,
+    # cap the score at 25 regardless of what the LLM returned.
+    # Condition: keywords 0% AND structure 0% AND word count under 30.
+    # This catches injection attempts and genuinely empty answers alike.
+    is_clear_non_answer = (
+        det_score.keyword_score == 0.0
+        and det_score.structure_score == 0.0
+        and det_score.word_count < 30
+    )
+    if is_clear_non_answer:
+        result = min(result, 25.0)
+
+    return result
 
 
 def run_hybrid_evaluation(
