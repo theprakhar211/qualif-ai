@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from loguru import logger
 
 # Import directly — no injected client needed
-from services.groq_service import ask_groq, ask_groq_smart
+from services.groq_service import ask_groq, ask_groq_smart, _sanitise_answer
 
 
 IDEAL_ANSWER_PROMPT = """You are a senior software engineer and technical interviewer.
@@ -203,11 +203,33 @@ async def benchmark_session_answers(
     enriched = []
     for ans in evaluated_answers:
         q_text = ans.get("question_text", "")
-        a_text = (ans.get("stt_corrected_transcript")
-                  or ans.get("corrected_transcript")
-                  or ans.get("transcript", ""))
+        a_text_raw = (ans.get("stt_corrected_transcript")
+                      or ans.get("corrected_transcript")
+                      or ans.get("transcript", ""))
+        # Sanitise before benchmarking — same defence as batch_evaluate
+        a_text = _sanitise_answer(a_text_raw)
         topic = ans.get("topic", "")
         difficulty = ans.get("difficulty", "medium")
+
+        # Skip benchmarking entirely for flagged answers — no point comparing
+        # injection text against an ideal answer
+        if a_text.startswith("[FLAGGED"):
+            enriched.append({
+                **ans,
+                "ideal_answer":    "",
+                "key_concepts":    [],
+                "scoring_rubric":  {},
+                "common_mistakes": [],
+                "comparison": {
+                    "covered_concepts":    [],
+                    "missing_concepts":    [],
+                    "extra_concepts":      [],
+                    "comparison_feedback": "Answer was flagged and removed — no comparison available.",
+                    "improvement_tip":     "",
+                    "similarity_score":    0,
+                },
+            })
+            continue
 
         try:
             ideal = await get_or_generate_ideal_answer(
