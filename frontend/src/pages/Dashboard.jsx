@@ -203,6 +203,7 @@ function AnswerBenchmark({ answerData, index }) {
     matched_keywords = [], missing_keywords = [],
     penalties_applied = [], word_count, wpm, input_mode,
     filler_words = [], was_corrected, reasoning,
+    ttr = 0, hedging_ratio = 0, avg_sentence_len = 0,
   } = answerData
 
   const score         = quick_score ?? 0
@@ -358,6 +359,22 @@ function AnswerBenchmark({ answerData, index }) {
             {filler_words?.length > 0 && (
               <span style={{ ...s.statPill, background: '#2a0f0f', color: '#fca5a5', borderColor: '#5a1a1a' }}>
                 Fillers: {filler_words.join(', ')}
+              </span>
+            )}
+            {/* Confidence metrics — voice only */}
+            {input_mode === 'voice' && ttr > 0 && (
+              <span style={{ ...s.statPill, background: ttr >= 0.6 ? '#0f2a1a' : ttr >= 0.45 ? '#1a1a0f' : '#2a0f0f', color: ttr >= 0.6 ? '#86efac' : ttr >= 0.45 ? '#fcd34d' : '#fca5a5', border: `1px solid ${ttr >= 0.6 ? 'rgba(34,197,94,0.25)' : ttr >= 0.45 ? 'rgba(234,179,8,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+                Vocab {Math.round(ttr * 100)}%
+              </span>
+            )}
+            {input_mode === 'voice' && hedging_ratio > 0 && (
+              <span style={{ ...s.statPill, background: hedging_ratio <= 0.15 ? '#0f2a1a' : hedging_ratio <= 0.3 ? '#1a1a0f' : '#2a0f0f', color: hedging_ratio <= 0.15 ? '#86efac' : hedging_ratio <= 0.3 ? '#fcd34d' : '#fca5a5', border: `1px solid ${hedging_ratio <= 0.15 ? 'rgba(34,197,94,0.25)' : hedging_ratio <= 0.3 ? 'rgba(234,179,8,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+                Hedging {hedging_ratio > 0 ? (hedging_ratio <= 0.15 ? 'low ✓' : hedging_ratio <= 0.3 ? 'medium' : 'high ✗') : '—'}
+              </span>
+            )}
+            {input_mode === 'voice' && avg_sentence_len > 0 && (
+              <span style={s.statPill}>
+                ~{avg_sentence_len}w/sentence
               </span>
             )}
           </div>
