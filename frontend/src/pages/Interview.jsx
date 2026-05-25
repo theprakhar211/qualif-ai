@@ -235,6 +235,14 @@ export default function Interview() {
 
     } catch (err) {
       if (err.response?.status === 401) { navigate('/login'); return }
+      if (err.response?.data?.detail === 'INJECTION_ATTEMPT') {
+        // Show warning, reset to listening, let them try again
+        setState(STATES.LISTENING)
+        setFeedback({ injection: true })
+        setTypedAnswer('')
+        resetTranscript()
+        return
+      }
       setState(STATES.LISTENING)
       setRetryCount(prev => prev + 1)
     }
@@ -520,8 +528,21 @@ export default function Interview() {
         )}
 
         {feedback && (
-          <div style={s.feedbackBox} className="fade-in">
-            {feedback.skipped ? (
+          <div style={{
+            ...s.feedbackBox,
+            borderColor: feedback.injection ? '#5a1a1a' : '#1e3a1e',
+          }} className="fade-in">
+            {feedback.injection ? (
+              <div>
+                <p style={{ color: '#f87171', fontSize: '14px', fontWeight: '600', marginBottom: '0.5rem' }}>
+                  ⚠ Answer not accepted
+                </p>
+                <p style={{ color: '#666', fontSize: '13px', lineHeight: '1.6' }}>
+                  Your answer appears to contain instructions rather than a genuine response.
+                  Please answer the question normally.
+                </p>
+              </div>
+            ) : feedback.skipped ? (
               <p style={{ color: '#666', fontSize: '14px' }}>Question skipped — next question loading...</p>
             ) : feedback.empty ? (
               <p style={{ color: '#666', fontSize: '14px' }}>No answer detected — next question loading...</p>
