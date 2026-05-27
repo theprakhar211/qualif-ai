@@ -98,3 +98,8 @@ a {
 *::-webkit-scrollbar {
   display: none; /* Chrome, Edge, Safari */
 }
+
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
