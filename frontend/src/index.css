@@ -90,3 +90,11 @@ a {
   animation: shimmer 1.5s infinite;
   border-radius: 6px;
 }
+
+* {
+  scrollbar-width: none; /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Edge, Safari */
+}
