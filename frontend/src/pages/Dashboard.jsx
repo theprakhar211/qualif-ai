@@ -942,7 +942,7 @@ const s = {
   statSuffix: { fontSize: '12px', color: '#555', fontWeight: '400' },
   statLabel:  { fontSize: '11px', color: '#444', marginTop: '0.2rem' },
 
-  tabBar:    { display: 'flex', gap: '0', marginBottom: '1.25rem', borderBottom: '1px solid #1a1a1a', overflowX: 'hidden' },
+  tabBar:    { display: 'flex', gap: '0', marginBottom: '1.25rem', borderBottom: '1px solid #1a1a1a', overflowX: 'hidden', overflowY: 'hidden' },
   tab:       { display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'transparent', border: 'none', color: '#555', padding: '0.6rem 0.875rem', cursor: 'pointer', fontSize: '13px', borderBottom: '2px solid transparent', marginBottom: '-1px', transition: 'color 0.15s', whiteSpace: 'nowrap', flexShrink: 0 },
   tabActive: { color: '#fff', borderBottom: '2px solid #6366f1' },
 

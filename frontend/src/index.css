@@ -92,11 +92,12 @@ a {
 }
 
 * {
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none !important;
 }
-
 *::-webkit-scrollbar {
-  display: none; /* Chrome, Edge, Safari */
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
 }
 
 html, body, #root {
