@@ -16,7 +16,13 @@ Qualif-AI is a full-stack voice-first mock interview simulator. Speak your answe
 |---|---|
 | ![Landing page](docs/screenshots/landing.png) | ![Login page](docs/screenshots/login.png) |
 
-> Add more screenshots to `docs/screenshots/` — interview screen, dashboard, skill graph, session detail.
+| Interview | Dashboard |
+|---|---|
+| ![Interview screen](docs/screenshots/interview.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+| Skill Graph | Session Detail |
+|---|---|
+| ![Skill graph](docs/screenshots/skill-graph.png) | ![Session detail](docs/screenshots/session-detail.png) |
 
 ---
 
@@ -41,7 +47,7 @@ Most mock interview tools give you a list of questions and a text box. Qualif-AI
 ### Voice-First Experience
 - Browser Web Speech API for both STT and TTS — zero setup, works on Chrome/Edge
 - Switch to typed input at any time
-- WPM tracking, filler word detection
+- WPM tracking, filler word detection, vocabulary diversity (TTR), hedging ratio
 
 ### AI Evaluation
 - Single Groq batch call evaluates all answers at once (~5–8s for 8 answers)
@@ -71,6 +77,43 @@ Most mock interview tools give you a list of questions and a text box. Qualif-AI
 - Weak areas — concepts most frequently missed
 - Performance by topic
 - Per-session detail with collapsible answer breakdown
+
+---
+
+## How Scoring Works
+
+Every answer goes through 4 stages before a score is committed:
+
+**Stage 1 — Injection sanitisation**
+`_sanitise_answer()` runs regex over the raw transcript before it reaches any LLM. Detected injection attempts are replaced with a flagged placeholder so they can't influence evaluation.
+
+**Stage 2 — LLM batch evaluation**
+All answers are sent to Llama 3.3 70B in a single prompt. XML delimiters (`<candidate_answer>` tags) wrap each answer to separate data from instructions. Returns per-answer: score, reasoning, keywords mentioned, missing concepts, corrected transcript.
+
+**Stage 3 — Hybrid deterministic scoring**
+For each answer, a local scorer runs in parallel:
+- Keyword scoring against a per-topic bank
+- Structure detection via regex (intro / explanation / conclusion)
+- Depth penalty: −35% under 20 words, −10% under 50 words, −15% for vague language
+- Hard score floor: if keywords = 0% AND structure = 0% AND word count < 30, cap at 25 regardless of LLM score
+
+Final score = 72% LLM + 28% deterministic for technical questions, 80/20 for intro/behavioural.
+
+**Stage 4 — Scores committed immediately**
+Scores are written to MongoDB before benchmarking begins. A crash during benchmarking never zeroes a session's scores.
+
+---
+
+## Security
+
+**Prompt injection defence — 5 layers:**
+1. `_sanitise_answer()` regex replaces injection patterns before any LLM sees the input
+2. XML delimiters (`<candidate_answer>` tags) separate candidate data from prompt instructions
+3. Explicit SECURITY rule in the system prompt instructs the LLM to ignore embedded instructions
+4. Hard score floor in the deterministic layer — a manipulated LLM score can't survive keyword=0% + structure=0% + word_count<30
+5. Typed answers get an additional LLM classification check at submission time; flagged answers skip benchmarking entirely
+
+**Auth:** JWT with bcrypt password hashing. JWT_SECRET enforced at 32+ characters.
 
 ---
 
@@ -116,6 +159,8 @@ Most mock interview tools give you a list of questions and a text box. Qualif-AI
 
 **Browser TTS/STT** — tried MeloTTS and Coqui TTS. Browser Web Speech API: zero setup, works everywhere Chrome/Edge supports it. Groq corrects obvious STT errors during evaluation.
 
+**Score commit before benchmarking** — scores are written to the database before the benchmarking step runs. This means a Groq timeout or crash during benchmarking never loses the evaluation results.
+
 ---
 
 ## Project Structure
@@ -143,7 +188,8 @@ qualif-ai/
 │   └── tests/
 │       ├── conftest.py
 │       ├── test_hybrid_evaluator.py   # 60+ unit tests
-│       └── test_skill_graph.py        # 40+ unit tests
+│       ├── test_skill_graph.py        # 40+ unit tests
+│       └── test_answer_quality.py     # tests for answer quality utilities
 ├── frontend/
 │   └── src/
 │       ├── pages/
@@ -219,9 +265,8 @@ npm run dev
 
 ```bash
 cd backend
-pip install pytest
-pytest
-# 103 passed
+pytest tests/ -v
+# 155 passed across 3 test files
 ```
 
 ---
@@ -269,12 +314,13 @@ Python version pinned in `backend/runtime.txt`: `python-3.11.9`
 
 ---
 
-## Known Limitations
+## Known Limitations & Roadmap
 
-- **Browser STT only** — no Whisper integration. Technical terms sometimes misrecognised; Groq corrects obvious errors during evaluation.
+- **Browser STT only** — no Whisper integration. Technical terms sometimes misrecognised; Groq corrects obvious errors during evaluation. Whisper via Groq API is a planned upgrade.
 - **Render cold start** — free tier sleeps after 15 min idle (~30s wake). Mitigated with UptimeRobot pinging `/health` every 5 minutes.
 - **Groq free tier** — 14,400 requests/day. Sufficient for personal use and portfolio demos.
-- **Voice requires Chrome/Edge** — Firefox does not support Web Speech API.
+- **Voice requires Chrome/Edge** — Firefox does not support Web Speech API. A fallback to typed-only mode is available.
+- **Question deduplication cap** — seen question hashes are capped at 200 (~25 sessions). Questions may repeat beyond that; cap increase or smarter rotation is planned.
 
 ---
 
