@@ -9,20 +9,20 @@ const ROLES = [
 ]
 
 const TOPICS_BY_ROLE = {
-  'Software Engineer':        ['Data Structures', 'Algorithms', 'System Design', 'OOP', 'Databases', 'Behavioural'],
-  'Frontend Developer':       ['React', 'JavaScript', 'CSS', 'Performance', 'Accessibility', 'Behavioural'],
-  'Backend Developer':        ['APIs', 'Databases', 'System Design', 'Security', 'Caching', 'Behavioural'],
-  'Full Stack Developer':     ['React', 'APIs', 'Databases', 'System Design', 'Behavioural'],
-  'Data Scientist':           ['Machine Learning', 'Statistics', 'Python', 'SQL', 'Behavioural'],
+  'Software Engineer':       ['Data Structures', 'Algorithms', 'System Design', 'OOP', 'Databases', 'Behavioural'],
+  'Frontend Developer':      ['React', 'JavaScript', 'CSS', 'Performance', 'Accessibility', 'Behavioural'],
+  'Backend Developer':       ['APIs', 'Databases', 'System Design', 'Security', 'Caching', 'Behavioural'],
+  'Full Stack Developer':    ['React', 'APIs', 'Databases', 'System Design', 'Behavioural'],
+  'Data Scientist':          ['Machine Learning', 'Statistics', 'Python', 'SQL', 'Behavioural'],
   'Machine Learning Engineer':['Deep Learning', 'MLOps', 'Python', 'System Design', 'Behavioural'],
   'DevOps Engineer':          ['CI/CD', 'Docker', 'Kubernetes', 'Cloud', 'Monitoring', 'Behavioural'],
   'Product Manager':          ['Product Strategy', 'Metrics', 'Prioritization', 'Stakeholders', 'Behavioural'],
 }
 
 const DIFFICULTIES = [
-  { id: 'easy',   label: 'Easy',   desc: 'Fundamentals and concepts' },
-  { id: 'medium', label: 'Medium', desc: 'Balanced depth and breadth' },
-  { id: 'hard',   label: 'Hard',   desc: 'Senior-level questions' },
+  { id: 'easy',   label: 'Easy',   desc: 'Fundamentals and concepts',   color: '#22c55e', bg: 'rgba(34,197,94,0.05)', glow: 'rgba(34,197,94,0.2)' },
+  { id: 'medium', label: 'Medium', desc: 'Balanced depth and breadth',  color: '#eab308', bg: 'rgba(234,179,8,0.05)',  glow: 'rgba(234,179,8,0.2)' },
+  { id: 'hard',   label: 'Hard',   desc: 'Senior-level questions',      color: '#ef4444', bg: 'rgba(239,68,68,0.05)',  glow: 'rgba(239,68,68,0.2)' },
 ]
 
 const INTERVIEW_TYPES = [
@@ -68,9 +68,6 @@ export default function Setup() {
   const handleTypeChange = (type) => {
     setInterviewType(type)
     setError('')
-    if (type === 'quick') {
-      // resume not required for quick
-    }
   }
 
   const handleResumeUpload = async (e) => {
@@ -111,6 +108,13 @@ export default function Setup() {
 
   return (
     <div style={s.page}>
+      {/* Dynamic Keyframes Injector */}
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      
+      {/* Background glow orbs */}
+      <div style={s.orb1} />
+      <div style={s.orb2} />
+
       <nav style={s.nav}>
         <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
         <div style={s.navRight}>
@@ -122,6 +126,7 @@ export default function Setup() {
 
       <div style={s.content}>
         <div style={s.hero}>
+          <div style={s.heroBadge}>Interview Setup</div>
           <h1 style={s.title}>Set up your interview</h1>
           <p style={s.sub}>Configure your session and start practicing in under a minute</p>
         </div>
@@ -150,7 +155,7 @@ export default function Setup() {
                 >
                   <div style={s.typeTop}>
                     <span style={s.typeIcon}>{t.icon}</span>
-                    <span style={s.typeLabel}>{t.label}</span>
+                    <span style={{ ...s.typeLabel, color: interviewType === t.id ? '#c4b5fd' : '#fff' }}>{t.label}</span>
                     {interviewType === t.id && (
                       <span style={s.typeCheck}>✓</span>
                     )}
@@ -173,7 +178,7 @@ export default function Setup() {
                   { phase: 'Behavioural',  q: 'Q8',    color: '#22c55e', desc: 'STAR-format situational questions' },
                 ].map(p => (
                   <div key={p.phase} style={s.phaseItem}>
-                    <div style={{ ...s.phaseDot, background: p.color }} />
+                    <div style={{ ...s.phaseDot, background: p.color, boxShadow: `0 0 6px ${p.color}` }} />
                     <div style={s.phaseInfo}>
                       <span style={s.phaseLabel}>{p.phase}</span>
                       <span style={s.phaseQ}>{p.q}</span>
@@ -202,6 +207,7 @@ export default function Setup() {
                   style={{ ...s.roleBtn, ...(role === r ? s.roleBtnActive : {}) }}
                   className="btn-press"
                 >
+                  {role === r && <span style={{ marginRight: '5px', color: '#818cf8' }}>✓</span>}
                   {r}
                 </button>
               ))}
@@ -259,8 +265,9 @@ export default function Setup() {
 
             <label style={{
               ...s.uploadBox,
-              borderColor: resumeLoading ? '#6366f1' : resume ? '#22c55e' : isComplete ? '#6366f1' : '#2a2a2a',
+              borderColor: resumeLoading ? '#6366f1' : resume ? '#22c55e' : isComplete && !resume ? '#6366f155' : '#2a2a2a',
               borderStyle: isComplete && !resume ? 'solid' : 'dashed',
+              background: resume ? 'rgba(34,197,94,0.04)' : resumeLoading ? 'rgba(99,102,241,0.04)' : 'transparent',
             }}>
               <input type="file" accept=".pdf" onChange={handleResumeUpload} disabled={resumeLoading} style={{ display: 'none' }} />
               <span style={{ fontSize: '20px' }}>{resumeLoading ? '⏳' : resume ? '✅' : '📄'}</span>
@@ -317,10 +324,20 @@ export default function Setup() {
                 <button
                   key={d.id}
                   onClick={() => setDifficulty(d.id)}
-                  style={{ ...s.diffBtn, ...(difficulty === d.id ? s.diffBtnActive[d.id] : {}) }}
+                  style={{
+                    ...s.diffBtn,
+                    ...(difficulty === d.id ? {
+                      border: `1px solid ${d.color}55`,
+                      background: d.bg,
+                      boxShadow: `0 0 16px ${d.glow}`,
+                    } : {})
+                  }}
                   className="btn-press"
                 >
-                  <span style={s.diffLabel}>{d.label}</span>
+                  {difficulty === d.id && (
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: d.color, boxShadow: `0 0 6px ${d.color}`, marginBottom: '4px' }} />
+                  )}
+                  <span style={{ ...s.diffLabel, color: difficulty === d.id ? d.color : '#fff' }}>{d.label}</span>
                   <span style={s.diffDesc}>{d.desc}</span>
                 </button>
               ))}
@@ -334,9 +351,10 @@ export default function Setup() {
             disabled={!canStart}
             style={{
               ...s.startBtn,
-              opacity: canStart ? 1 : 0.4,
+              opacity: canStart ? 1 : 0.35,
               cursor:  canStart ? 'pointer' : 'not-allowed',
               marginTop: '2rem',
+              boxShadow: canStart ? '0 4px 24px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)' : 'none',
             }}
             className="btn-press"
           >
@@ -362,77 +380,165 @@ export default function Setup() {
 }
 
 const s = {
-  page:     { minHeight: '100vh', background: '#0a0a0a', color: '#fff' },
-  nav:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' },
-  navRight: { display: 'flex', alignItems: 'center', gap: '1rem' },
-  greeting: { color: '#555', fontSize: '14px' },
-  navGhost: { background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
-  content:  { maxWidth: '720px', margin: '0 auto', padding: '3rem 1.5rem' },
-  hero:     { marginBottom: '2rem' },
-  title:    { fontSize: '32px', fontWeight: '700', marginBottom: '0.5rem' },
-  sub:      { color: '#555', fontSize: '15px' },
-  card:     { background: '#0f0f0f', border: '1px solid #1e1e1e', borderRadius: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0' },
-  step:     { paddingBottom: '2rem', marginBottom: '2rem', borderBottom: '1px solid #1a1a1a' },
-  stepHeader: { display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem' },
-  stepNum:  { fontSize: '28px', fontWeight: '700', color: '#6366f1', opacity: 0.6, lineHeight: 1, flexShrink: 0 },
-  stepTitle:{ fontSize: '16px', fontWeight: '600', marginBottom: '2px' },
-  stepSub:  { fontSize: '13px', color: '#555' },
-  optional: { color: '#444', fontWeight: '400', fontSize: '12px', marginLeft: '6px', background: '#1a1a1a', padding: '1px 8px', borderRadius: '10px' },
-  required: { color: '#6366f1', fontWeight: '400', fontSize: '12px', marginLeft: '6px', background: '#1e1b4b', padding: '1px 8px', borderRadius: '10px' },
+  page: {
+    minHeight: '100vh',
+    background: '#080810',
+    backgroundImage: 'radial-gradient(ellipse at 85% 0%, rgba(99,102,241,0.13) 0%, transparent 55%), radial-gradient(ellipse at 5% 95%, rgba(139,92,246,0.07) 0%, transparent 50%)',
+    color: '#fff',
+    position: 'relative',
+    overflow: 'hidden',
+  },
 
-  // Interview type selector
+  orb1: {
+    position: 'fixed', top: '-120px', right: '-80px',
+    width: '400px', height: '400px', borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)',
+    pointerEvents: 'none', zIndex: 0,
+  },
+  orb2: {
+    position: 'fixed', bottom: '-100px', left: '-60px',
+    width: '300px', height: '300px', borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
+    pointerEvents: 'none', zIndex: 0,
+  },
+
+  nav: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '1rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)',
+    background: 'rgba(8,8,16,0.8)', backdropFilter: 'blur(12px)',
+    position: 'sticky', top: 0, zIndex: 100,
+  },
+  navRight:  { display: 'flex', alignItems: 'center', gap: '1rem' },
+  greeting:  { color: '#444', fontSize: '14px' },
+  navGhost:  {
+    background: 'transparent', border: '1px solid rgba(255,255,255,0.08)',
+    color: '#666', padding: '0.4rem 0.9rem', borderRadius: '8px',
+    cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s',
+  },
+
+  content: { maxWidth: '720px', margin: '0 auto', padding: '3rem 1.5rem', position: 'relative', zIndex: 1 },
+
+  hero: { marginBottom: '2.5rem' },
+  heroBadge: {
+    display: 'inline-block', fontSize: '11px', fontWeight: '600', letterSpacing: '0.1em',
+    textTransform: 'uppercase', color: '#6366f1', background: 'rgba(99,102,241,0.1)',
+    border: '1px solid rgba(99,102,241,0.25)', padding: '4px 12px', borderRadius: '20px',
+    marginBottom: '1rem',
+  },
+  title: {
+    fontSize: '36px', fontWeight: '800', marginBottom: '0.5rem', lineHeight: 1.1,
+    background: 'linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.65) 100%)',
+    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+  },
+  sub: { color: '#444', fontSize: '15px' },
+
+  card: {
+    background: 'rgba(12,12,20,0.9)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '24px', padding: '2rem',
+    display: 'flex', flexDirection: 'column', gap: '0',
+    boxShadow: '0 0 0 1px rgba(99,102,241,0.05), 0 24px 48px rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(8px)',
+  },
+
+  step: { paddingBottom: '2rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.05)' },
+  stepHeader: { display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem' },
+  stepNum: {
+    fontSize: '32px', fontWeight: '800', color: '#6366f1',
+    textShadow: '0 0 24px rgba(99,102,241,0.6)',
+    lineHeight: 1, flexShrink: 0, minWidth: '48px', opacity: 1,
+  },
+  stepTitle: { fontSize: '16px', fontWeight: '600', marginBottom: '3px', color: '#e2e8f0' },
+  stepSub:   { fontSize: '13px', color: '#444' },
+  optional:  { color: '#444', fontWeight: '400', fontSize: '12px', marginLeft: '8px', background: 'rgba(255,255,255,0.04)', padding: '1px 8px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)' },
+  required:  { color: '#818cf8', fontWeight: '400', fontSize: '12px', marginLeft: '8px', background: 'rgba(99,102,241,0.12)', padding: '1px 8px', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.25)' },
+
+  // Interview type
   typeGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' },
   typeBtn: {
-    background: '#151515', border: '1px solid #2a2a2a',
-    borderRadius: '12px', padding: '1.25rem',
-    cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '14px', padding: '1.25rem',
+    cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
   },
-  typeBtnActive: { background: '#1e1b4b', border: '1px solid #6366f1' },
-  typeTop:  { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' },
-  typeIcon: { fontSize: '20px' },
-  typeLabel:{ fontSize: '15px', fontWeight: '600', color: '#fff', flex: 1 },
-  typeCheck:{ color: '#6366f1', fontWeight: '700' },
-  typeDesc: { fontSize: '13px', color: '#666', lineHeight: '1.5', marginBottom: '0.5rem' },
-  typeTag:  { fontSize: '11px', color: '#a5b4fc', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', padding: '2px 8px', borderRadius: '10px' },
+  typeBtnActive: {
+    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)',
+    boxShadow: '0 0 24px rgba(99,102,241,0.12), inset 0 1px 0 rgba(255,255,255,0.05)',
+  },
+  typeTop:   { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' },
+  typeIcon:  { fontSize: '20px' },
+  typeLabel: { fontSize: '15px', fontWeight: '600', flex: 1, transition: 'color 0.2s' },
+  typeCheck: { color: '#818cf8', fontWeight: '700', fontSize: '16px' },
+  typeDesc:  { fontSize: '13px', color: '#555', lineHeight: '1.5', marginBottom: '0.5rem' },
+  typeTag:   { fontSize: '11px', color: '#a5b4fc', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', padding: '2px 8px', borderRadius: '10px' },
 
   // Phase preview
-  phasePreview: { background: '#111', border: '1px solid #1e1e1e', borderRadius: '10px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  phasePreview: { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' },
   phaseItem:    { display: 'flex', alignItems: 'center', gap: '0.75rem' },
   phaseDot:     { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   phaseInfo:    { display: 'flex', gap: '0.5rem', alignItems: 'center', minWidth: '160px' },
   phaseLabel:   { fontSize: '13px', fontWeight: '500', color: '#ccc' },
-  phaseQ:       { fontSize: '11px', color: '#444', background: '#1a1a1a', padding: '1px 6px', borderRadius: '4px' },
-  phaseDesc:    { fontSize: '12px', color: '#555', flex: 1 },
+  phaseQ:       { fontSize: '11px', color: '#333', background: 'rgba(255,255,255,0.04)', padding: '1px 6px', borderRadius: '4px' },
+  phaseDesc:    { fontSize: '12px', color: '#444', flex: 1 },
 
+  // Role + topic buttons
   roleGrid: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
-  roleBtn:  { background: '#151515', border: '1px solid #2a2a2a', color: '#888', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', transition: 'all 0.15s' },
-  roleBtnActive: { background: '#1e1b4b', border: '1px solid #6366f1', color: '#a5b4fc' },
-  topicGrid:{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
-  topicBtn: { background: '#151515', border: '1px solid #2a2a2a', color: '#888', padding: '0.5rem 0.9rem', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' },
-  topicBtnActive: { background: '#0f2a1a', border: '1px solid #22c55e', color: '#86efac' },
-
-  uploadBox: { display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px dashed #2a2a2a', borderRadius: '10px', padding: '1rem 1.25rem', cursor: 'pointer', transition: 'border-color 0.2s' },
-  inlineError:{ color: '#ff6b6b', fontSize: '13px', marginTop: '0.5rem' },
-  resumePreview:     { background: '#111', border: '1px solid #1e3a1e', borderRadius: '10px', padding: '1rem', marginTop: '0.75rem' },
-  resumeTitle:       { fontSize: '12px', color: '#22c55e', fontWeight: '500', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  resumeGrid: { display: 'flex', gap: '1.5rem', flexWrap: 'wrap' },
-  resumeItem: { display: 'flex', gap: '0.5rem', fontSize: '13px', alignItems: 'center' },
-  resumeKey:  { color: '#555' },
-  resumeVal:  { color: '#ccc', fontWeight: '500' },
-  techTag:    { background: '#1e1b4b', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
-
-  diffGrid: { display: 'flex', gap: '0.75rem' },
-  diffBtn: { flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', background: '#151515', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '0.875rem 1rem', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' },
-  diffBtnActive: {
-    easy:   { background: '#0f2a1a', border: '1px solid #22c55e' },
-    medium: { background: '#1a1a0f', border: '1px solid #eab308' },
-    hard:   { background: '#2a0f0f', border: '1px solid #ef4444' },
+  roleBtn: {
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+    color: '#666', padding: '0.6rem 1rem', borderRadius: '8px',
+    cursor: 'pointer', fontSize: '14px', transition: 'all 0.15s',
   },
-  diffLabel: { fontSize: '14px', fontWeight: '600', color: '#fff' },
-  diffDesc:  { fontSize: '12px', color: '#555' },
+  roleBtnActive: {
+    background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.45)',
+    color: '#a5b4fc', boxShadow: '0 0 12px rgba(99,102,241,0.18)',
+  },
 
-  error:   { background: '#2a1515', border: '1px solid #5a1a1a', color: '#ff6b6b', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', marginTop: '1.5rem', lineHeight: '1.5' },
-  startBtn:{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem 2rem', fontSize: '16px', fontWeight: '600', width: '100%', transition: 'transform 0.1s' },
-  hint:    { textAlign: 'center', color: '#333', fontSize: '13px', marginTop: '0.75rem' },
+  topicGrid: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
+  topicBtn: {
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+    color: '#555', padding: '0.5rem 0.9rem', borderRadius: '8px',
+    cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s',
+  },
+  topicBtnActive: {
+    background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.4)',
+    color: '#86efac', boxShadow: '0 0 10px rgba(34,197,94,0.12)',
+  },
+
+  // Upload
+  uploadBox: {
+    display: 'flex', alignItems: 'center', gap: '0.75rem',
+    border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '12px',
+    padding: '1rem 1.25rem', cursor: 'pointer', transition: 'all 0.2s',
+  },
+  inlineError: { color: '#f87171', fontSize: '13px', marginTop: '0.5rem' },
+  resumePreview: { background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: '12px', padding: '1rem', marginTop: '0.75rem' },
+  resumeTitle:   { fontSize: '12px', color: '#22c55e', fontWeight: '600', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  resumeGrid:    { display: 'flex', gap: '1.5rem', flexWrap: 'wrap' },
+  resumeItem:    { display: 'flex', gap: '0.5rem', fontSize: '13px', alignItems: 'center' },
+  resumeKey:     { color: '#444' },
+  resumeVal:     { color: '#ccc', fontWeight: '500' },
+  techTag:       { background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', color: '#a5b4fc', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
+
+  // Difficulty
+  diffGrid: { display: 'flex', gap: '0.75rem' },
+  diffBtn: {
+    flex: 1, display: 'flex', flexDirection: 'column', gap: '4px',
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '12px', padding: '0.875rem 1rem',
+    cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+  },
+  diffLabel: { fontSize: '14px', fontWeight: '700', transition: 'color 0.2s' },
+  diffDesc:  { fontSize: '12px', color: '#444' },
+
+  // Start button
+  startBtn: {
+    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+    color: '#fff', border: 'none', borderRadius: '14px',
+    padding: '1rem 2rem', fontSize: '16px', fontWeight: '700',
+    width: '100%', transition: 'transform 0.1s, box-shadow 0.2s',
+    letterSpacing: '0.01em',
+  },
+
+  error: { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '13px', marginTop: '1.5rem', lineHeight: '1.5' },
+  hint:  { textAlign: 'center', color: '#2a2a2a', fontSize: '13px', marginTop: '0.75rem' },
   spinner: { width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' },
 }
