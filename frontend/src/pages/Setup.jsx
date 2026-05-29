@@ -9,38 +9,35 @@ const ROLES = [
 ]
 
 const TOPICS_BY_ROLE = {
-  'Software Engineer':       ['Data Structures', 'Algorithms', 'System Design', 'OOP', 'Databases', 'Behavioural'],
-  'Frontend Developer':      ['React', 'JavaScript', 'CSS', 'Performance', 'Accessibility', 'Behavioural'],
-  'Backend Developer':       ['APIs', 'Databases', 'System Design', 'Security', 'Caching', 'Behavioural'],
-  'Full Stack Developer':    ['React', 'APIs', 'Databases', 'System Design', 'Behavioural'],
-  'Data Scientist':          ['Machine Learning', 'Statistics', 'Python', 'SQL', 'Behavioural'],
-  'Machine Learning Engineer':['Deep Learning', 'MLOps', 'Python', 'System Design', 'Behavioural'],
-  'DevOps Engineer':          ['CI/CD', 'Docker', 'Kubernetes', 'Cloud', 'Monitoring', 'Behavioural'],
-  'Product Manager':          ['Product Strategy', 'Metrics', 'Prioritization', 'Stakeholders', 'Behavioural'],
+  'Software Engineer':         ['Data Structures', 'Algorithms', 'System Design', 'OOP', 'Databases', 'Behavioural'],
+  'Frontend Developer':        ['React', 'JavaScript', 'CSS', 'Performance', 'Accessibility', 'Behavioural'],
+  'Backend Developer':         ['APIs', 'Databases', 'System Design', 'Security', 'Caching', 'Behavioural'],
+  'Full Stack Developer':      ['React', 'APIs', 'Databases', 'System Design', 'Behavioural'],
+  'Data Scientist':            ['Machine Learning', 'Statistics', 'Python', 'SQL', 'Behavioural'],
+  'Machine Learning Engineer': ['Deep Learning', 'MLOps', 'Python', 'System Design', 'Behavioural'],
+  'DevOps Engineer':           ['CI/CD', 'Docker', 'Kubernetes', 'Cloud', 'Monitoring', 'Behavioural'],
+  'Product Manager':           ['Product Strategy', 'Metrics', 'Prioritization', 'Stakeholders', 'Behavioural'],
 }
-
-const DIFFICULTIES = [
-  { id: 'easy',   label: 'Easy',   desc: 'Fundamentals and concepts',   color: '#22c55e', bg: 'rgba(34,197,94,0.05)', glow: 'rgba(34,197,94,0.2)' },
-  { id: 'medium', label: 'Medium', desc: 'Balanced depth and breadth',  color: '#eab308', bg: 'rgba(234,179,8,0.05)',  glow: 'rgba(234,179,8,0.2)' },
-  { id: 'hard',   label: 'Hard',   desc: 'Senior-level questions',      color: '#ef4444', bg: 'rgba(239,68,68,0.05)',  glow: 'rgba(239,68,68,0.2)' },
-]
 
 const INTERVIEW_TYPES = [
   {
-    id: 'quick',
+    id:    'quick',
     label: 'Quick Practice',
-    icon: '⚡',
-    desc: '8 technical questions. Fast, focused practice on specific topics.',
+    icon:  'bolt',
+    desc:  'Focused, single-topic drill sessions designed for speed.',
     requiresResume: false,
   },
   {
-    id: 'complete',
+    id:    'complete',
     label: 'Complete Interview',
-    icon: '🎯',
-    desc: 'Full structured interview — introduction, resume review, technical, and behavioural questions.',
+    icon:  'target',
+    desc:  'Full-length realistic simulation of a real hiring loop.',
     requiresResume: true,
   },
 ]
+
+const DIFFICULTY_BARS = { easy: '33%', medium: '66%', hard: '100%' }
+const DIFFICULTY_COLORS = { easy: '#22c55e', medium: '#2563eb', hard: '#ef4444' }
 
 export default function Setup() {
   const navigate = useNavigate()
@@ -65,10 +62,7 @@ export default function Setup() {
 
   const handleRoleChange = (newRole) => { setRole(newRole); setTopics([]); setError('') }
 
-  const handleTypeChange = (type) => {
-    setInterviewType(type)
-    setError('')
-  }
+  const handleTypeChange = (type) => { setInterviewType(type); setError('') }
 
   const handleResumeUpload = async (e) => {
     const file = e.target.files[0]
@@ -87,10 +81,9 @@ export default function Setup() {
   }
 
   const handleStart = async () => {
-    if (!role)           { setError('Please select a job role.'); return }
-    if (!topics.length)  { setError('Please select at least one topic.'); return }
-    if (isComplete && !resumeParsed) { setError('Complete Interview requires a resume upload for personalized questions.'); return }
-
+    if (!role)          { setError('Please select a job role.'); return }
+    if (!topics.length) { setError('Please select at least one topic.'); return }
+    if (isComplete && !resumeParsed) { setError('Complete Interview requires a resume upload.'); return }
     setLoading(true); setError('')
     try {
       const res = await interviewAPI.start({ role, topics, difficulty, interview_type: interviewType })
@@ -106,275 +99,330 @@ export default function Setup() {
 
   const canStart = role && topics.length > 0 && !loading && (!isComplete || resumeParsed)
 
+  // Estimated duration
+  const duration = isComplete ? '45–60 minutes' : '20–25 minutes'
+
   return (
     <div style={s.page}>
-      {/* Dynamic Keyframes Injector */}
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      
-      {/* Background glow orbs */}
-      <div style={s.orb1} />
-      <div style={s.orb2} />
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shimmerGlow {
+          0%, 100% { box-shadow: 0 0 30px -8px rgba(37,99,235,0.6), 0 4px 24px rgba(37,99,235,0.25); }
+          50%       { box-shadow: 0 0 50px -4px rgba(37,99,235,0.8), 0 4px 32px rgba(37,99,235,0.35); }
+        }
+        .setup-fade { animation: fadeUp 0.5s ease-out forwards; }
+        .start-glow { animation: shimmerGlow 3s ease-in-out infinite; }
+        .pill-hover:hover { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.15) !important; color: #e2e8f0 !important; }
+        .type-card-hover:hover { border-color: rgba(255,255,255,0.2) !important; background: rgba(255,255,255,0.04) !important; }
+        .diff-hover:hover { border-color: rgba(255,255,255,0.15) !important; }
+        .upload-hover:hover { border-color: rgba(37,99,235,0.5) !important; background: rgba(37,99,235,0.04) !important; }
+      `}</style>
 
+      {/* Background radial glows */}
+      <div style={s.bgGlow1} />
+      <div style={s.bgGlow2} />
+
+      {/* Navbar */}
       <nav style={s.nav}>
-        <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
+        <img
+          src="/logo.png"
+          alt="Qualif-AI"
+          style={{ height: '40px', objectFit: 'contain', cursor: 'pointer' }}
+          onClick={() => navigate('/')}
+        />
         <div style={s.navRight}>
-          <span style={s.greeting}>Hey, {user.name?.split(' ')[0]} 👋</span>
-          <button onClick={() => navigate('/dashboard')} style={s.navGhost} className="btn-press">Dashboard</button>
-          <button onClick={logout} style={s.navGhost} className="btn-press">Logout</button>
+          <div style={s.navUser}>
+            <div style={s.navAvatar}>{user.name?.charAt(0)?.toUpperCase() || 'U'}</div>
+            <span style={s.navName}>{user.name}</span>
+          </div>
+          <button onClick={() => navigate('/dashboard')} style={s.navGhost}>Dashboard</button>
+          <button onClick={logout} style={s.navLogout}>Logout</button>
         </div>
       </nav>
 
-      <div style={s.content}>
-        <div style={s.hero}>
-          <div style={s.heroBadge}>Interview Setup</div>
-          <h1 style={s.title}>Set up your interview</h1>
-          <p style={s.sub}>Configure your session and start practicing in under a minute</p>
-        </div>
+      <main style={s.main}>
+        {/* Page header */}
+        <header style={s.header} className="setup-fade">
+          <span style={s.headerEyebrow}>Interview Setup</span>
+          <h1 style={s.headerTitle}>Set up your interview</h1>
+          <p style={s.headerSub}>Configure your session and start practicing in under a minute</p>
+        </header>
 
-        <div style={s.card} className="fade-in">
+        {/* Bleed glow behind card */}
+        <div style={s.cardGlow} />
 
-          {/* Step 0 — Interview Type */}
-          <div style={s.step}>
-            <div style={s.stepHeader}>
-              <span style={s.stepNum}>00</span>
-              <div>
-                <div style={s.stepTitle}>Choose interview type</div>
-                <div style={s.stepSub}>Quick practice or a full structured interview?</div>
+        {/* Main card */}
+        <div style={s.card} className="setup-fade">
+          <div style={s.sections}>
+
+            {/* ── Step 00 — Session Type ── */}
+            <section style={s.section}>
+              <div style={s.sectionHead}>
+                <span style={s.stepNum}>00</span>
+                <h2 style={s.sectionTitle}>Choose Session Type</h2>
               </div>
-            </div>
-            <div style={s.typeGrid}>
-              {INTERVIEW_TYPES.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => handleTypeChange(t.id)}
-                  style={{
-                    ...s.typeBtn,
-                    ...(interviewType === t.id ? s.typeBtnActive : {})
-                  }}
-                  className="btn-press"
-                >
-                  <div style={s.typeTop}>
-                    <span style={s.typeIcon}>{t.icon}</span>
-                    <span style={{ ...s.typeLabel, color: interviewType === t.id ? '#c4b5fd' : '#fff' }}>{t.label}</span>
-                    {interviewType === t.id && (
-                      <span style={s.typeCheck}>✓</span>
+              <div style={s.typeGrid}>
+                {INTERVIEW_TYPES.map(t => {
+                  const active = interviewType === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => handleTypeChange(t.id)}
+                      className={active ? '' : 'type-card-hover'}
+                      style={{
+                        ...s.typeCard,
+                        ...(active ? s.typeCardActive : {}),
+                      }}
+                    >
+                      {active && <div style={s.typeCardCheck}>✓</div>}
+                      {/* Icon using text emoji fallback */}
+                      <span style={{ fontSize: '32px', marginBottom: '12px', display: 'block' }}>
+                        {t.id === 'quick' ? '⚡' : '🎯'}
+                      </span>
+                      <h3 style={{ ...s.typeCardTitle, color: active ? '#fff' : 'rgba(228,225,237,0.7)' }}>
+                        {t.label}
+                      </h3>
+                      <p style={s.typeCardDesc}>{t.desc}</p>
+                      {t.requiresResume && (
+                        <span style={s.typeCardTag}>Requires resume</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Phase preview for Complete Interview */}
+              {isComplete && (
+                <div style={s.phasePreview} className="setup-fade">
+                  {[
+                    { label: 'Introduction',  qs: 'Q1–Q2', color: '#6366f1' },
+                    { label: 'Resume Review', qs: 'Q3–Q4', color: '#8b5cf6' },
+                    { label: 'Technical',     qs: 'Q5–Q7', color: '#06b6d4' },
+                    { label: 'Behavioural',   qs: 'Q8',    color: '#22c55e' },
+                  ].map((p, i) => (
+                    <div key={p.label} style={s.phaseRow}>
+                      {i > 0 && <div style={{ ...s.phaseConnector, background: '#1e1e2e' }} />}
+                      <div style={{ ...s.phaseDot, background: p.color, boxShadow: `0 0 8px ${p.color}60` }} />
+                      <span style={s.phaseLabel}>{p.label}</span>
+                      <span style={s.phaseQs}>{p.qs}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ── Step 01 — Role ── */}
+            <section style={s.section}>
+              <div style={s.sectionHead}>
+                <span style={s.stepNum}>01</span>
+                <h2 style={s.sectionTitle}>Target Role</h2>
+              </div>
+              <div style={s.pillWrap}>
+                {ROLES.map(r => {
+                  const active = role === r
+                  return (
+                    <button
+                      key={r}
+                      onClick={() => handleRoleChange(r)}
+                      className={active ? '' : 'pill-hover'}
+                      style={{
+                        ...s.pill,
+                        ...(active ? s.pillActive : s.pillInactive),
+                      }}
+                    >
+                      {r}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
+            {/* ── Step 02 — Topics (only after role selected) ── */}
+            {role && (
+              <section style={s.section} className="setup-fade">
+                <div style={s.sectionHead}>
+                  <span style={s.stepNum}>02</span>
+                  <h2 style={s.sectionTitle}>Select Topics</h2>
+                </div>
+                <div style={s.pillWrap}>
+                  {availableTopics.map(t => {
+                    const active = topics.includes(t)
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => toggleTopic(t)}
+                        className={active ? '' : 'pill-hover'}
+                        style={{
+                          ...s.pillSm,
+                          ...(active ? s.pillActive : s.pillInactive),
+                        }}
+                      >
+                        {t}
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* ── Step 03 — Resume ── */}
+            <section style={s.section}>
+              <div style={s.sectionHead}>
+                <span style={s.stepNum}>03</span>
+                <h2 style={s.sectionTitle}>
+                  Upload Resume
+                  {isComplete
+                    ? <span style={s.tagRequired}>required</span>
+                    : <span style={s.tagOptional}>optional</span>
+                  }
+                </h2>
+              </div>
+
+              <label
+                style={{
+                  ...s.uploadBox,
+                  borderColor: resumeLoading
+                    ? 'rgba(37,99,235,0.6)'
+                    : resume
+                    ? 'rgba(34,197,94,0.4)'
+                    : isComplete
+                    ? 'rgba(37,99,235,0.35)'
+                    : 'rgba(255,255,255,0.08)',
+                }}
+                className="upload-hover"
+              >
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleResumeUpload}
+                  disabled={resumeLoading}
+                  style={{ display: 'none' }}
+                />
+                <div style={s.uploadIcon}>
+                  <span style={{ fontSize: '28px' }}>
+                    {resumeLoading ? '⏳' : resume ? '✅' : '☁️'}
+                  </span>
+                </div>
+                <div style={s.uploadText}>
+                  <p style={s.uploadTitle}>
+                    {resumeLoading ? 'Parsing with AI...' : resume ? resume.name : 'Click to upload PDF'}
+                  </p>
+                  <p style={s.uploadSub}>MAX FILE SIZE 5MB</p>
+                </div>
+              </label>
+
+              {resumeError && <p style={s.inlineError}>{resumeError}</p>}
+
+              {resumeParsed && (
+                <div style={s.resumePreview} className="setup-fade">
+                  <p style={s.resumeTitle}>✓ Resume parsed successfully</p>
+                  <div style={s.resumeMeta}>
+                    {resumeParsed.target_role && (
+                      <div style={s.resumeMetaItem}>
+                        <span style={s.resumeMetaKey}>Role</span>
+                        <span style={s.resumeMetaVal}>{resumeParsed.target_role}</span>
+                      </div>
+                    )}
+                    {resumeParsed.years_experience > 0 && (
+                      <div style={s.resumeMetaItem}>
+                        <span style={s.resumeMetaKey}>Experience</span>
+                        <span style={s.resumeMetaVal}>{resumeParsed.years_experience} yrs</span>
+                      </div>
                     )}
                   </div>
-                  <p style={s.typeDesc}>{t.desc}</p>
-                  {t.requiresResume && (
-                    <span style={s.typeTag}>Requires resume</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Complete interview phases preview */}
-            {isComplete && (
-              <div style={s.phasePreview} className="fade-in">
-                {[
-                  { phase: 'Introduction', q: 'Q1–Q2', color: '#6366f1', desc: 'Tell me about yourself, your background' },
-                  { phase: 'Resume Review', q: 'Q3–Q4', color: '#8b5cf6', desc: 'Questions based on your uploaded resume' },
-                  { phase: 'Technical',    q: 'Q5–Q7', color: '#06b6d4', desc: 'Role-specific technical questions' },
-                  { phase: 'Behavioural',  q: 'Q8',    color: '#22c55e', desc: 'STAR-format situational questions' },
-                ].map(p => (
-                  <div key={p.phase} style={s.phaseItem}>
-                    <div style={{ ...s.phaseDot, background: p.color, boxShadow: `0 0 6px ${p.color}` }} />
-                    <div style={s.phaseInfo}>
-                      <span style={s.phaseLabel}>{p.phase}</span>
-                      <span style={s.phaseQ}>{p.q}</span>
+                  {resumeParsed.technologies?.length > 0 && (
+                    <div style={s.techTags}>
+                      {resumeParsed.technologies.slice(0, 8).map(t => (
+                        <span key={t} style={s.techTag}>{t}</span>
+                      ))}
                     </div>
-                    <span style={s.phaseDesc}>{p.desc}</span>
-                  </div>
-                ))}
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* ── Step 04 — Difficulty ── */}
+            <section style={{ ...s.section, borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
+              <div style={s.sectionHead}>
+                <span style={s.stepNum}>04</span>
+                <h2 style={s.sectionTitle}>Difficulty Level</h2>
               </div>
+              <div style={s.diffGrid}>
+                {['easy', 'medium', 'hard'].map(d => {
+                  const active = difficulty === d
+                  const color  = DIFFICULTY_COLORS[d]
+                  const bar    = DIFFICULTY_BARS[d]
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      className={active ? '' : 'diff-hover'}
+                      style={{
+                        ...s.diffCard,
+                        background: active ? `rgba(${d === 'easy' ? '34,197,94' : d === 'medium' ? '37,99,235' : '239,68,68'},0.08)` : 'rgba(255,255,255,0.02)',
+                        borderColor: active ? `${color}66` : 'rgba(255,255,255,0.06)',
+                        boxShadow: active ? `0 0 20px ${color}22` : 'none',
+                      }}
+                    >
+                      <span style={{ ...s.diffLabel, color: active ? color : 'rgba(228,225,237,0.35)' }}>
+                        {d.toUpperCase()}
+                      </span>
+                      <div style={s.diffBarBg}>
+                        <div style={{
+                          ...s.diffBarFill,
+                          width: bar,
+                          background: active ? color : 'rgba(255,255,255,0.1)',
+                          boxShadow: active ? `0 0 8px ${color}88` : 'none',
+                        }} />
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
+            {/* ── Error ── */}
+            {error && (
+              <div style={s.errorBox}>{error}</div>
             )}
-          </div>
 
-          {/* Step 1 — Role */}
-          <div style={s.step}>
-            <div style={s.stepHeader}>
-              <span style={s.stepNum}>01</span>
-              <div>
-                <div style={s.stepTitle}>Choose your role</div>
-                <div style={s.stepSub}>What position are you interviewing for?</div>
-              </div>
-            </div>
-            <div style={s.roleGrid}>
-              {ROLES.map(r => (
-                <button
-                  key={r}
-                  onClick={() => handleRoleChange(r)}
-                  style={{ ...s.roleBtn, ...(role === r ? s.roleBtnActive : {}) }}
-                  className="btn-press"
-                >
-                  {role === r && <span style={{ marginRight: '5px', color: '#818cf8' }}>✓</span>}
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Step 2 — Topics */}
-          {role && (
-            <div style={s.step} className="fade-in">
-              <div style={s.stepHeader}>
-                <span style={s.stepNum}>02</span>
-                <div>
-                  <div style={s.stepTitle}>Pick your topics</div>
-                  <div style={s.stepSub}>
-                    {isComplete
-                      ? 'Topics for the technical phase (Q5–Q7)'
-                      : 'Select all areas you want to be tested on'}
-                  </div>
-                </div>
-              </div>
-              <div style={s.topicGrid}>
-                {availableTopics.map(t => (
-                  <button
-                    key={t}
-                    onClick={() => toggleTopic(t)}
-                    style={{ ...s.topicBtn, ...(topics.includes(t) ? s.topicBtnActive : {}) }}
-                    className="btn-press"
-                  >
-                    {topics.includes(t) ? '✓ ' : ''}{t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3 — Resume */}
-          <div style={s.step}>
-            <div style={s.stepHeader}>
-              <span style={s.stepNum}>03</span>
-              <div>
-                <div style={s.stepTitle}>
-                  Upload resume
-                  {isComplete
-                    ? <span style={s.required}>required</span>
-                    : <span style={s.optional}>optional</span>
-                  }
-                </div>
-                <div style={s.stepSub}>
-                  {isComplete
-                    ? 'Required for resume review phase — questions will be personalized to your background'
-                    : 'Personalizes questions to your background'}
-                </div>
-              </div>
-            </div>
-
-            <label style={{
-              ...s.uploadBox,
-              borderColor: resumeLoading ? '#6366f1' : resume ? '#22c55e' : isComplete && !resume ? '#6366f155' : '#2a2a2a',
-              borderStyle: isComplete && !resume ? 'solid' : 'dashed',
-              background: resume ? 'rgba(34,197,94,0.04)' : resumeLoading ? 'rgba(99,102,241,0.04)' : 'transparent',
-            }}>
-              <input type="file" accept=".pdf" onChange={handleResumeUpload} disabled={resumeLoading} style={{ display: 'none' }} />
-              <span style={{ fontSize: '20px' }}>{resumeLoading ? '⏳' : resume ? '✅' : '📄'}</span>
-              <span style={{ color: resumeLoading ? '#6366f1' : resume ? '#22c55e' : '#555', fontSize: '14px' }}>
-                {resumeLoading ? 'Parsing with AI...' : resume ? resume.name : 'Click to upload PDF resume (max 5MB)'}
-              </span>
-            </label>
-
-            {resumeError && <div style={s.inlineError}>{resumeError}</div>}
-
-            {resumeParsed && (
-              <div style={s.resumePreview} className="fade-in">
-                <div style={s.resumeTitle}>✓ Resume parsed</div>
-                <div style={s.resumeGrid}>
-                  {resumeParsed.target_role && (
-                    <div style={s.resumeItem}>
-                      <span style={s.resumeKey}>Role</span>
-                      <span style={s.resumeVal}>{resumeParsed.target_role}</span>
-                    </div>
-                  )}
-                  {resumeParsed.years_experience > 0 && (
-                    <div style={s.resumeItem}>
-                      <span style={s.resumeKey}>Experience</span>
-                      <span style={s.resumeVal}>{resumeParsed.years_experience} years</span>
-                    </div>
-                  )}
-                </div>
-                {resumeParsed.technologies?.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '0.5rem' }}>
-                    {resumeParsed.technologies.slice(0, 8).map(t => (
-                      <span key={t} style={s.techTag}>{t}</span>
-                    ))}
-                  </div>
+            {/* ── Start button ── */}
+            <div style={{ marginTop: '2rem' }}>
+              <button
+                onClick={handleStart}
+                disabled={!canStart}
+                className={canStart ? 'start-glow' : ''}
+                style={{
+                  ...s.startBtn,
+                  opacity:    canStart ? 1 : 0.35,
+                  cursor:     canStart ? 'pointer' : 'not-allowed',
+                  transform:  'none',
+                }}
+              >
+                {loading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem' }}>
+                    <span style={s.spinner} />
+                    Generating your first question...
+                  </span>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    Start interview
+                    <span style={{ fontSize: '20px', fontWeight: '300' }}>›</span>
+                  </span>
                 )}
-              </div>
-            )}
-          </div>
+              </button>
 
-          {/* Step 4 — Difficulty */}
-          <div style={{ ...s.step, borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
-            <div style={s.stepHeader}>
-              <span style={s.stepNum}>04</span>
-              <div>
-                <div style={s.stepTitle}>Set difficulty</div>
-                <div style={s.stepSub}>
-                  {isComplete
-                    ? 'Applies to the technical phase questions'
-                    : 'How challenging should the questions be?'}
-                </div>
+              {/* Duration hint */}
+              <div style={s.durationHint}>
+                <span style={{ fontSize: '14px' }}>🕐</span>
+                <span>ESTIMATED DURATION: {duration}</span>
               </div>
             </div>
-            <div style={s.diffGrid}>
-              {DIFFICULTIES.map(d => (
-                <button
-                  key={d.id}
-                  onClick={() => setDifficulty(d.id)}
-                  style={{
-                    ...s.diffBtn,
-                    ...(difficulty === d.id ? {
-                      border: `1px solid ${d.color}55`,
-                      background: d.bg,
-                      boxShadow: `0 0 16px ${d.glow}`,
-                    } : {})
-                  }}
-                  className="btn-press"
-                >
-                  {difficulty === d.id && (
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: d.color, boxShadow: `0 0 6px ${d.color}`, marginBottom: '4px' }} />
-                  )}
-                  <span style={{ ...s.diffLabel, color: difficulty === d.id ? d.color : '#fff' }}>{d.label}</span>
-                  <span style={s.diffDesc}>{d.desc}</span>
-                </button>
-              ))}
-            </div>
+
           </div>
-
-          {error && <div style={s.error}>{error}</div>}
-
-          <button
-            onClick={handleStart}
-            disabled={!canStart}
-            style={{
-              ...s.startBtn,
-              opacity: canStart ? 1 : 0.35,
-              cursor:  canStart ? 'pointer' : 'not-allowed',
-              marginTop: '2rem',
-              boxShadow: canStart ? '0 4px 24px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)' : 'none',
-            }}
-            className="btn-press"
-          >
-            {loading ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <span style={s.spinner} /> Generating your first question...
-              </span>
-            ) : (
-              `Start ${interviewType === 'complete' ? 'complete ' : ''}interview →`
-            )}
-          </button>
-
-          {/* Helper hints */}
-          {!role && <p style={s.hint}>Select a role above to continue</p>}
-          {role && !topics.length && <p style={s.hint}>Select at least one topic to continue</p>}
-          {role && topics.length > 0 && isComplete && !resumeParsed && (
-            <p style={s.hint}>Upload your resume to unlock Complete Interview</p>
-          )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }
@@ -382,163 +430,241 @@ export default function Setup() {
 const s = {
   page: {
     minHeight: '100vh',
-    background: '#080810',
-    backgroundImage: 'radial-gradient(ellipse at 85% 0%, rgba(99,102,241,0.13) 0%, transparent 55%), radial-gradient(ellipse at 5% 95%, rgba(139,92,246,0.07) 0%, transparent 50%)',
-    color: '#fff',
+    background: '#030308',
+    backgroundImage: 'radial-gradient(circle at 50% 15%, rgba(37,99,235,0.12) 0%, transparent 50%), radial-gradient(circle at 0% 0%, rgba(37,99,235,0.05) 0%, transparent 40%), radial-gradient(circle at 100% 100%, rgba(37,99,235,0.03) 0%, transparent 40%)',
+    color: '#e4e1ed',
     position: 'relative',
-    overflow: 'hidden',
+    paddingBottom: '6rem',
   },
 
-  orb1: {
-    position: 'fixed', top: '-120px', right: '-80px',
-    width: '400px', height: '400px', borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)',
-    pointerEvents: 'none', zIndex: 0,
+  bgGlow1: {
+    position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
+    width: '800px', height: '400px', pointerEvents: 'none', zIndex: 0,
+    background: 'radial-gradient(ellipse, rgba(37,99,235,0.08) 0%, transparent 70%)',
   },
-  orb2: {
-    position: 'fixed', bottom: '-100px', left: '-60px',
-    width: '300px', height: '300px', borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
-    pointerEvents: 'none', zIndex: 0,
+  bgGlow2: {
+    position: 'fixed', bottom: '-100px', left: '-100px',
+    width: '500px', height: '500px', pointerEvents: 'none', zIndex: 0,
+    background: 'radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)',
   },
 
+  // Navbar
   nav: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '1rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)',
-    background: 'rgba(8,8,16,0.8)', backdropFilter: 'blur(12px)',
     position: 'sticky', top: 0, zIndex: 100,
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    height: '64px', padding: '0 24px',
+    background: 'rgba(3,3,8,0.7)', backdropFilter: 'blur(16px)',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
   },
   navRight:  { display: 'flex', alignItems: 'center', gap: '1rem' },
-  greeting:  { color: '#444', fontSize: '14px' },
+  navUser:   { display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '0.5rem' },
+  navAvatar: {
+    width: '28px', height: '28px', borderRadius: '50%',
+    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '12px', fontWeight: '700', color: '#fff', flexShrink: 0,
+  },
+  navName:   { fontSize: '14px', color: 'rgba(228,225,237,0.5)', fontWeight: '500' },
   navGhost:  {
     background: 'transparent', border: '1px solid rgba(255,255,255,0.08)',
-    color: '#666', padding: '0.4rem 0.9rem', borderRadius: '8px',
-    cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s',
+    color: 'rgba(228,225,237,0.5)', padding: '0.4rem 0.9rem', borderRadius: '8px',
+    cursor: 'pointer', fontSize: '13px', fontWeight: '600', transition: 'all 0.15s',
+  },
+  navLogout: {
+    background: 'transparent', border: 'none',
+    color: 'rgba(228,225,237,0.3)', padding: '0.4rem 0.5rem',
+    cursor: 'pointer', fontSize: '13px', fontWeight: '500', transition: 'color 0.15s',
   },
 
-  content: { maxWidth: '720px', margin: '0 auto', padding: '3rem 1.5rem', position: 'relative', zIndex: 1 },
+  // Main layout
+  main:   { position: 'relative', zIndex: 1, maxWidth: '760px', margin: '0 auto', padding: '5rem 24px 0' },
 
-  hero: { marginBottom: '2.5rem' },
-  heroBadge: {
-    display: 'inline-block', fontSize: '11px', fontWeight: '600', letterSpacing: '0.1em',
-    textTransform: 'uppercase', color: '#6366f1', background: 'rgba(99,102,241,0.1)',
-    border: '1px solid rgba(99,102,241,0.25)', padding: '4px 12px', borderRadius: '20px',
-    marginBottom: '1rem',
+  header: { marginBottom: '3rem', textAlign: 'center' },
+  headerEyebrow: {
+    display: 'block', fontSize: '11px', fontWeight: '700', letterSpacing: '0.2em',
+    textTransform: 'uppercase', color: 'rgba(228,225,237,0.35)', marginBottom: '12px',
   },
-  title: {
-    fontSize: '36px', fontWeight: '800', marginBottom: '0.5rem', lineHeight: 1.1,
-    background: 'linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.65) 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+  headerTitle: {
+    fontSize: 'clamp(36px, 6vw, 52px)', fontWeight: '800', lineHeight: 1.1,
+    letterSpacing: '-0.02em', color: '#fff', marginBottom: '12px',
   },
-  sub: { color: '#444', fontSize: '15px' },
+  headerSub: { color: 'rgba(228,225,237,0.4)', fontSize: '17px' },
+
+  cardGlow: {
+    position: 'absolute', inset: 0, zIndex: 0,
+    background: 'rgba(37,99,235,0.04)', filter: 'blur(120px)',
+    borderRadius: '50%', transform: 'scaleX(1.5) translateY(80px)',
+    pointerEvents: 'none',
+  },
 
   card: {
-    background: 'rgba(12,12,20,0.9)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: '24px', padding: '2rem',
-    display: 'flex', flexDirection: 'column', gap: '0',
-    boxShadow: '0 0 0 1px rgba(99,102,241,0.05), 0 24px 48px rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(8px)',
+    position: 'relative', zIndex: 1,
+    background: 'linear-gradient(180deg, rgba(31,31,39,0.7) 0%, rgba(19,19,27,0.8) 100%)',
+    backdropFilter: 'blur(24px)',
+    border: '1px solid rgba(37,99,235,0.15)',
+    borderRadius: '24px',
+    boxShadow: '0 0 40px -10px rgba(0,0,0,0.6), 0 0 20px -5px rgba(37,99,235,0.1)',
+    padding: '3rem',
   },
 
-  step: { paddingBottom: '2rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.05)' },
-  stepHeader: { display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem' },
+  sections: { display: 'flex', flexDirection: 'column', gap: '0' },
+
+  section: {
+    paddingBottom: '3rem',
+    marginBottom: '3rem',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+  sectionHead: { display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' },
   stepNum: {
-    fontSize: '32px', fontWeight: '800', color: '#6366f1',
-    textShadow: '0 0 24px rgba(99,102,241,0.6)',
-    lineHeight: 1, flexShrink: 0, minWidth: '48px', opacity: 1,
+    fontSize: '32px', fontWeight: '800', lineHeight: 1,
+    color: '#2563eb',
+    textShadow: '0 0 20px rgba(37,99,235,0.6)',
+    flexShrink: 0, minWidth: '48px',
   },
-  stepTitle: { fontSize: '16px', fontWeight: '600', marginBottom: '3px', color: '#e2e8f0' },
-  stepSub:   { fontSize: '13px', color: '#444' },
-  optional:  { color: '#444', fontWeight: '400', fontSize: '12px', marginLeft: '8px', background: 'rgba(255,255,255,0.04)', padding: '1px 8px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)' },
-  required:  { color: '#818cf8', fontWeight: '400', fontSize: '12px', marginLeft: '8px', background: 'rgba(99,102,241,0.12)', padding: '1px 8px', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.25)' },
+  sectionTitle: {
+    fontSize: '22px', fontWeight: '700', color: '#fff',
+    letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '0',
+  },
 
-  // Interview type
-  typeGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' },
-  typeBtn: {
-    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: '14px', padding: '1.25rem',
-    cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+  tagOptional: {
+    marginLeft: '10px', fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em',
+    color: 'rgba(228,225,237,0.3)', background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.07)', padding: '2px 8px', borderRadius: '10px',
   },
-  typeBtnActive: {
-    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.4)',
-    boxShadow: '0 0 24px rgba(99,102,241,0.12), inset 0 1px 0 rgba(255,255,255,0.05)',
+  tagRequired: {
+    marginLeft: '10px', fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em',
+    color: '#818cf8', background: 'rgba(99,102,241,0.12)',
+    border: '1px solid rgba(99,102,241,0.25)', padding: '2px 8px', borderRadius: '10px',
   },
-  typeTop:   { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' },
-  typeIcon:  { fontSize: '20px' },
-  typeLabel: { fontSize: '15px', fontWeight: '600', flex: 1, transition: 'color 0.2s' },
-  typeCheck: { color: '#818cf8', fontWeight: '700', fontSize: '16px' },
-  typeDesc:  { fontSize: '13px', color: '#555', lineHeight: '1.5', marginBottom: '0.5rem' },
-  typeTag:   { fontSize: '11px', color: '#a5b4fc', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', padding: '2px 8px', borderRadius: '10px' },
+
+  // Interview type cards
+  typeGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' },
+  typeCard: {
+    position: 'relative',
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: '16px', padding: '2rem',
+    cursor: 'pointer', textAlign: 'left', transition: 'all 0.25s',
+  },
+  typeCardActive: {
+    background: 'rgba(37,99,235,0.06)',
+    border: '2px solid #2563eb',
+    boxShadow: '0 0 32px rgba(37,99,235,0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
+  },
+  typeCardCheck: {
+    position: 'absolute', top: '14px', right: '14px',
+    width: '24px', height: '24px', borderRadius: '50%',
+    background: '#2563eb', color: '#fff',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '13px', fontWeight: '700',
+  },
+  typeCardTitle: { fontSize: '16px', fontWeight: '700', marginBottom: '8px' },
+  typeCardDesc:  { fontSize: '13px', color: 'rgba(228,225,237,0.35)', lineHeight: '1.6', marginBottom: '10px' },
+  typeCardTag:   {
+    display: 'inline-block', fontSize: '11px', color: '#a5b4fc',
+    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)',
+    padding: '2px 10px', borderRadius: '10px',
+  },
 
   // Phase preview
-  phasePreview: { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' },
-  phaseItem:    { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  phaseDot:     { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
-  phaseInfo:    { display: 'flex', gap: '0.5rem', alignItems: 'center', minWidth: '160px' },
-  phaseLabel:   { fontSize: '13px', fontWeight: '500', color: '#ccc' },
-  phaseQ:       { fontSize: '11px', color: '#333', background: 'rgba(255,255,255,0.04)', padding: '1px 6px', borderRadius: '4px' },
-  phaseDesc:    { fontSize: '12px', color: '#444', flex: 1 },
-
-  // Role + topic buttons
-  roleGrid: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
-  roleBtn: {
-    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-    color: '#666', padding: '0.6rem 1rem', borderRadius: '8px',
-    cursor: 'pointer', fontSize: '14px', transition: 'all 0.15s',
+  phasePreview: {
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px',
+    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+    borderRadius: '12px', padding: '1rem 1.25rem',
   },
-  roleBtnActive: {
-    background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.45)',
-    color: '#a5b4fc', boxShadow: '0 0 12px rgba(99,102,241,0.18)',
+  phaseRow:      { display: 'flex', alignItems: 'center', gap: '6px' },
+  phaseConnector:{ width: '20px', height: '2px', borderRadius: '1px', flexShrink: 0 },
+  phaseDot:      { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  phaseLabel:    { fontSize: '13px', fontWeight: '500', color: 'rgba(228,225,237,0.7)' },
+  phaseQs:       {
+    fontSize: '10px', color: 'rgba(228,225,237,0.25)',
+    background: 'rgba(255,255,255,0.04)', padding: '1px 6px', borderRadius: '4px',
   },
 
-  topicGrid: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
-  topicBtn: {
-    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-    color: '#555', padding: '0.5rem 0.9rem', borderRadius: '8px',
-    cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s',
+  // Pills (roles + topics)
+  pillWrap: { display: 'flex', flexWrap: 'wrap', gap: '10px' },
+  pill: {
+    padding: '0.55rem 1.1rem', borderRadius: '9999px',
+    cursor: 'pointer', fontSize: '14px', fontWeight: '600',
+    border: '1px solid', transition: 'all 0.15s',
   },
-  topicBtnActive: {
-    background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.4)',
-    color: '#86efac', boxShadow: '0 0 10px rgba(34,197,94,0.12)',
+  pillSm: {
+    padding: '0.45rem 0.9rem', borderRadius: '9999px',
+    cursor: 'pointer', fontSize: '13px', fontWeight: '500',
+    border: '1px solid', transition: 'all 0.15s',
+  },
+  pillActive: {
+    background: '#2563eb', borderColor: '#2563eb',
+    color: '#fff', boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+  },
+  pillInactive: {
+    background: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    color: 'rgba(228,225,237,0.35)',
   },
 
-  // Upload
+  // Resume upload
   uploadBox: {
-    display: 'flex', alignItems: 'center', gap: '0.75rem',
-    border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '12px',
-    padding: '1rem 1.25rem', cursor: 'pointer', transition: 'all 0.2s',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    gap: '12px', border: '2px dashed rgba(255,255,255,0.08)',
+    borderRadius: '16px', padding: '3rem 2rem',
+    cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center',
   },
-  inlineError: { color: '#f87171', fontSize: '13px', marginTop: '0.5rem' },
-  resumePreview: { background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: '12px', padding: '1rem', marginTop: '0.75rem' },
-  resumeTitle:   { fontSize: '12px', color: '#22c55e', fontWeight: '600', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  resumeGrid:    { display: 'flex', gap: '1.5rem', flexWrap: 'wrap' },
-  resumeItem:    { display: 'flex', gap: '0.5rem', fontSize: '13px', alignItems: 'center' },
-  resumeKey:     { color: '#444' },
-  resumeVal:     { color: '#ccc', fontWeight: '500' },
+  uploadIcon: {
+    width: '56px', height: '56px', borderRadius: '14px',
+    background: 'rgba(255,255,255,0.04)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  uploadText:  {},
+  uploadTitle: { fontSize: '16px', fontWeight: '600', color: '#e4e1ed', marginBottom: '4px' },
+  uploadSub:   { fontSize: '11px', fontWeight: '700', letterSpacing: '0.2em', color: 'rgba(228,225,237,0.2)' },
+  inlineError: { color: '#f87171', fontSize: '13px', marginTop: '8px' },
+
+  resumePreview: {
+    background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)',
+    borderRadius: '12px', padding: '1rem', marginTop: '12px',
+  },
+  resumeTitle:   { fontSize: '12px', color: '#22c55e', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  resumeMeta:    { display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '8px' },
+  resumeMetaItem:{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '13px' },
+  resumeMetaKey: { color: '#444' },
+  resumeMetaVal: { color: '#ccc', fontWeight: '500' },
+  techTags:      { display: 'flex', flexWrap: 'wrap', gap: '4px' },
   techTag:       { background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', color: '#a5b4fc', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' },
 
   // Difficulty
-  diffGrid: { display: 'flex', gap: '0.75rem' },
-  diffBtn: {
-    flex: 1, display: 'flex', flexDirection: 'column', gap: '4px',
-    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: '12px', padding: '0.875rem 1rem',
-    cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+  diffGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' },
+  diffCard: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    gap: '14px', padding: '1.5rem 0.75rem',
+    borderRadius: '14px', border: '1px solid', cursor: 'pointer', transition: 'all 0.2s',
   },
-  diffLabel: { fontSize: '14px', fontWeight: '700', transition: 'color 0.2s' },
-  diffDesc:  { fontSize: '12px', color: '#444' },
+  diffLabel:  { fontSize: '11px', fontWeight: '800', letterSpacing: '0.15em', transition: 'color 0.2s' },
+  diffBarBg:  { width: '64px', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' },
+  diffBarFill:{ height: '100%', borderRadius: '3px', transition: 'all 0.3s' },
 
-  // Start button
+  errorBox: {
+    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+    color: '#f87171', padding: '0.875rem 1rem', borderRadius: '10px',
+    fontSize: '13px', marginTop: '1.5rem', lineHeight: '1.5',
+  },
+
   startBtn: {
-    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    color: '#fff', border: 'none', borderRadius: '14px',
-    padding: '1rem 2rem', fontSize: '16px', fontWeight: '700',
-    width: '100%', transition: 'transform 0.1s, box-shadow 0.2s',
-    letterSpacing: '0.01em',
+    width: '100%', padding: '1.25rem 2rem',
+    background: '#2563eb', color: '#fff',
+    border: 'none', borderRadius: '9999px',
+    fontSize: '18px', fontWeight: '700', letterSpacing: '0.01em',
+    transition: 'opacity 0.2s, transform 0.1s',
   },
 
-  error: { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '13px', marginTop: '1.5rem', lineHeight: '1.5' },
-  hint:  { textAlign: 'center', color: '#2a2a2a', fontSize: '13px', marginTop: '0.75rem' },
-  spinner: { width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' },
+  durationHint: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    marginTop: '1.5rem', opacity: 0.3,
+    fontSize: '11px', fontWeight: '700', letterSpacing: '0.2em', textTransform: 'uppercase',
+  },
+
+  spinner: {
+    width: '16px', height: '16px',
+    border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff',
+    borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite',
+  },
 }
