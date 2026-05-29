@@ -636,15 +636,15 @@ export default function Dashboard() {
         {stats && (
           <div style={s.statsRow} className="fade-in">
             {[
-              { label: 'Total sessions',  value: stats.total_sessions,     icon: '🎯' },
-              { label: 'Completed',       value: stats.completed_sessions,  icon: '✅' },
-              { label: 'Answers given',   value: stats.total_answers,       icon: '💬' },
-              { label: 'Average score',   value: `${stats.avg_score}`,      icon: '📊', suffix: '/100' },
-              { label: 'Best score',      value: `${stats.best_score}`,     icon: '🏆', suffix: '/100' },
+              { label: 'Total sessions',  value: stats.total_sessions,     icon: '🎯', accent: '#6366f1' },
+              { label: 'Completed',       value: stats.completed_sessions,  icon: '✅', accent: '#22c55e' },
+              { label: 'Answers given',   value: stats.total_answers,       icon: '💬', accent: '#38bdf8' },
+              { label: 'Average score',   value: `${stats.avg_score}`,      icon: '📊', suffix: '/100', accent: '#f59e0b' },
+              { label: 'Best score',      value: `${stats.best_score}`,     icon: '🏆', suffix: '/100', accent: '#a855f7' },
             ].map(st => (
-              <div key={st.label} style={s.statCard}>
+              <div key={st.label} style={{ ...s.statCard, borderColor: `${st.accent}22`, boxShadow: `0 0 20px ${st.accent}08` }}>
                 <div style={s.statIcon}>{st.icon}</div>
-                <div style={s.statValue}>
+                <div style={{ ...s.statValue, color: st.accent }}>
                   {st.value}
                   {st.suffix && <span style={s.statSuffix}>{st.suffix}</span>}
                 </div>
@@ -927,31 +927,32 @@ export default function Dashboard() {
 }
 
 const s = {
-  page:     { minHeight: '100vh', background: '#0a0a0a', color: '#fff' },
-  nav:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid #1a1a1a', background: '#0a0a0a', flexWrap: 'wrap', gap: '0.5rem' },
+  page:     { minHeight: '100vh', background: 'radial-gradient(ellipse 70% 30% at 50% 0%, rgba(99,102,241,0.07) 0%, transparent 55%), #0a0a0a', color: '#fff' },
+  nav:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid #1a1a1a', background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: '0.5rem' },
   navRight: { display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' },
   greeting: { color: '#555', fontSize: '13px', display: 'none' },
   navGhost:   { background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.35rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', transition: 'all 0.15s', whiteSpace: 'nowrap' },
-  navPrimary: { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap' },
+  navPrimary: { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', boxShadow: '0 2px 12px rgba(99,102,241,0.35)' },
   content:  { maxWidth: '1000px', margin: '0 auto', padding: '1rem' },
 
   statsRow: { display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' },
-  statCard: { flex: '1 1 80px', minWidth: '80px', background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e1e', borderRadius: '12px', padding: '0.875rem 0.75rem', textAlign: 'center' },
+  statCard: { flex: '1 1 80px', minWidth: '80px', background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e2e', borderRadius: '14px', padding: '0.875rem 0.75rem', textAlign: 'center', transition: 'border-color 0.2s' },
   statIcon:   { fontSize: '18px', marginBottom: '0.35rem' },
-  statValue:  { fontSize: '22px', fontWeight: '700', color: '#fff', lineHeight: 1 },
-  statSuffix: { fontSize: '12px', color: '#555', fontWeight: '400' },
-  statLabel:  { fontSize: '11px', color: '#444', marginTop: '0.2rem' },
+  statValue:  { fontSize: '24px', fontWeight: '800', color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' },
+  statSuffix: { fontSize: '12px', color: '#444', fontWeight: '400' },
+  statLabel:  { fontSize: '11px', color: '#444', marginTop: '0.25rem' },
 
-  tabBar:    { display: 'flex', gap: '0', marginBottom: '1.25rem', borderBottom: '1px solid #1a1a1a', overflowX: 'hidden', overflowY: 'hidden' },
-  tab:       { display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'transparent', border: 'none', color: '#555', padding: '0.6rem 0.875rem', cursor: 'pointer', fontSize: '13px', borderBottom: '2px solid transparent', marginBottom: '-1px', transition: 'color 0.15s', whiteSpace: 'nowrap', flexShrink: 0 },
-  tabActive: { color: '#fff', borderBottom: '2px solid #6366f1' },
+  // Pill-style tab bar
+  tabBar:    { display: 'flex', gap: '3px', marginBottom: '1.25rem', background: '#0e0e14', border: '1px solid #1a1a28', borderRadius: '12px', padding: '4px', overflowX: 'hidden', overflowY: 'hidden' },
+  tab:       { display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'transparent', border: 'none', color: '#555', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '13px', borderRadius: '8px', transition: 'color 0.15s, background 0.15s', whiteSpace: 'nowrap', flexShrink: 0 },
+  tabActive: { color: '#e2e8f0', background: 'linear-gradient(135deg, #1e1e2e, #191926)', boxShadow: '0 1px 4px rgba(0,0,0,0.4)' },
 
-  chartCard:   { background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e1e', borderRadius: '14px', padding: '1.25rem', marginBottom: '1rem' },
+  chartCard:   { background: 'linear-gradient(160deg, #0e0e16 0%, #0c0c0f 100%)', border: '1px solid #1a1a28', borderRadius: '16px', padding: '1.25rem', marginBottom: '1rem' },
   chartHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' },
-  chartTitle:  { fontSize: '15px', fontWeight: '600', color: '#ccc', marginBottom: '2px' },
+  chartTitle:  { fontSize: '15px', fontWeight: '700', color: '#ccc', marginBottom: '2px', letterSpacing: '-0.01em' },
   chartSub:    { fontSize: '12px', color: '#444' },
-  trendBadge:  { background: '#111', border: '1px solid #2a2a2a', borderRadius: '20px', padding: '4px 10px' },
-  emptyChart:  { background: '#111', border: '1px solid #1e1e1e', borderRadius: '14px', padding: '2rem 1rem', textAlign: 'center', marginBottom: '1rem' },
+  trendBadge:  { background: 'rgba(255,255,255,0.04)', border: '1px solid #2a2a3a', borderRadius: '20px', padding: '4px 10px' },
+  emptyChart:  { background: 'linear-gradient(160deg, #0e0e16 0%, #0c0c0f 100%)', border: '1px solid #1a1a28', borderRadius: '16px', padding: '2rem 1rem', textAlign: 'center', marginBottom: '1rem' },
   twoCol:      { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' },
 
   weakRow:    { marginBottom: '0.875rem' },
@@ -960,30 +961,30 @@ const s = {
   weakBarFill:{ height: '100%', borderRadius: '3px', transition: 'width 0.5s ease' },
 
   historyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' },
-  sectionTitle:  { fontSize: '16px', fontWeight: '600', color: '#ccc' },
+  sectionTitle:  { fontSize: '16px', fontWeight: '700', color: '#ccc', letterSpacing: '-0.01em' },
   emptyState:    { textAlign: 'center', padding: '3rem 1rem' },
 
   sessionGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' },
-  sessionCard: { background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e1e', borderRadius: '12px', padding: '1rem', cursor: 'pointer', transition: 'border-color 0.2s, transform 0.15s' },
+  sessionCard: { background: 'linear-gradient(160deg, #0e0e16 0%, #0c0c0f 100%)', border: '1px solid #1a1a28', borderRadius: '14px', padding: '1rem', cursor: 'pointer', transition: 'border-color 0.2s, transform 0.15s, box-shadow 0.2s' },
   sessionCardTop: { display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' },
   sessionLeft:    { flexShrink: 0 },
   sessionRight:   { flex: 1, minWidth: 0 },
-  sessionRole:    { fontSize: '14px', fontWeight: '600', color: '#fff', marginBottom: '0.2rem' },
+  sessionRole:    { fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '0.2rem', letterSpacing: '-0.01em' },
   sessionMeta:    { display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '11px', marginBottom: '0.4rem', flexWrap: 'wrap' },
   metaDot:        { color: '#333' },
-  sessionFooter:  { borderTop: '1px solid #1a1a1a', paddingTop: '0.6rem' },
+  sessionFooter:  { borderTop: '1px solid #16161e', paddingTop: '0.6rem' },
 
   topicTags: { display: 'flex', gap: '4px', flexWrap: 'wrap' },
-  topicTag:  { background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '4px', padding: '2px 6px', fontSize: '10px', color: '#666' },
+  topicTag:  { background: 'rgba(255,255,255,0.04)', border: '1px solid #222230', borderRadius: '4px', padding: '2px 6px', fontSize: '10px', color: '#555' },
 
-  detailHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e1e', borderRadius: '14px', padding: '1.25rem', flexWrap: 'wrap', gap: '1rem' },
+  detailHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', background: 'linear-gradient(160deg, #0e0e16 0%, #0c0c0f 100%)', border: '1px solid #1a1a28', borderRadius: '16px', padding: '1.25rem', flexWrap: 'wrap', gap: '1rem' },
   detailLeft:      { flex: 1, minWidth: '200px' },
-  detailRole:      { fontSize: '18px', fontWeight: '700', marginBottom: '0.4rem' },
+  detailRole:      { fontSize: '18px', fontWeight: '800', marginBottom: '0.4rem', letterSpacing: '-0.02em' },
   detailMeta:      { display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', fontSize: '12px' },
   detailScoreWrap: { flexShrink: 0 },
 
   answersList: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
-  answerCard:  { background: 'linear-gradient(135deg, #111 0%, #0f0f1a 100%)', border: '1px solid #1e1e1e', borderRadius: '12px', padding: '1.25rem' },
+  answerCard:  { background: 'linear-gradient(160deg, #0e0e16 0%, #0c0c0f 100%)', border: '1px solid #1a1a28', borderRadius: '14px', padding: '1.25rem' },
   answerHeader:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' },
   answerHeaderLeft: { display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' },
   answerQ:          { fontSize: '11px', color: '#444', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
@@ -998,9 +999,9 @@ const s = {
   tagRed:       { background: '#2a0f0f', border: '1px solid rgba(239,68,68,0.3)',  color: '#fca5a5', fontSize: '11px', padding: '2px 7px', borderRadius: '4px' },
 
   answerStats: { display: 'flex', gap: '0.4rem', flexWrap: 'wrap' },
-  statPill:    { background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#888', fontSize: '11px', padding: '3px 9px', borderRadius: '20px' },
+  statPill:    { background: 'rgba(255,255,255,0.03)', border: '1px solid #222230', color: '#777', fontSize: '11px', padding: '3px 9px', borderRadius: '20px' },
 
-  primaryBtn: { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.65rem 1.25rem', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'transform 0.1s' },
-  spinner:    { width: '44px', height: '44px', border: '3px solid #1e1e1e', borderTop: '3px solid #6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite' },
+  primaryBtn: { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.65rem 1.25rem', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'transform 0.1s', boxShadow: '0 4px 16px rgba(99,102,241,0.3)' },
+  spinner:    { width: '44px', height: '44px', border: '3px solid #1e1e2e', borderTop: '3px solid #6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite' },
   muted:      { color: '#444', fontSize: '12px' },
 }
