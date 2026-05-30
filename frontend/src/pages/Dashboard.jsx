@@ -613,7 +613,6 @@ export default function Dashboard() {
     <div style={s.page}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.4s ease forwards; }
         .btn-press:active { transform: scale(0.97); }
@@ -622,8 +621,6 @@ export default function Dashboard() {
         .nav-ghost-hover:hover { color: rgba(228,225,237,0.8) !important; }
         .chart-card-hover:hover { border-color: rgba(255,255,255,0.1) !important; }
 
-        /* ── Global overflow clamp ── */
-        html, body, #root { overflow-x: hidden; max-width: 100vw; }
 
         /* ── Mobile responsive ── */
         @media (max-width: 640px) {

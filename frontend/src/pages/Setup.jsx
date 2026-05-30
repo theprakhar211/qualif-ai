@@ -106,7 +106,6 @@ export default function Setup() {
     <div style={s.page} className="setup-page">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes shimmerGlow {
           0%, 100% { box-shadow: 0 0 30px -8px rgba(37,99,235,0.6), 0 4px 24px rgba(37,99,235,0.25); }
@@ -119,8 +118,6 @@ export default function Setup() {
         .diff-hover:hover { border-color: rgba(255,255,255,0.15) !important; }
         .upload-hover:hover { border-color: rgba(37,99,235,0.5) !important; background: rgba(37,99,235,0.04) !important; }
 
-        /* ── Global overflow clamp ── */
-        html, body, #root { overflow-x: hidden; max-width: 100vw; }
 
         /* ── Mobile ── */
         @media (max-width: 640px) {
