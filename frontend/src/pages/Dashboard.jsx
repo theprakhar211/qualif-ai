@@ -504,6 +504,34 @@ function ScoreRing({ score, size = 80 }) {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
+const DASHBOARD_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  .btn-press:active { transform: scale(0.97); }
+  .session-card-hover:hover { border-color: rgba(192,193,255,0.2) !important; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .stat-card-hover:hover { border-color: rgba(255,255,255,0.12) !important; }
+  .nav-ghost-hover:hover { color: rgba(228,225,237,0.8) !important; }
+  .chart-card-hover:hover { border-color: rgba(255,255,255,0.1) !important; }
+  @media (max-width: 640px) {
+    .dash-nav-right { gap: 0.35rem !important; flex-wrap: nowrap !important; }
+    .dash-greeting  { display: none !important; }
+    .dash-stats-row { grid-template-columns: repeat(3, 1fr) !important; }
+    .dash-stat-value { font-size: 22px !important; }
+    .dash-tab-bar { width: 100% !important; overflow-x: auto !important; overflow-y: hidden !important; border-radius: 12px !important; }
+    .dash-tab { padding: 0.4rem 0.65rem !important; font-size: 11px !important; }
+    .dash-content { padding: 1rem 12px !important; }
+    .dash-title { font-size: 20px !important; }
+    .dash-two-col { grid-template-columns: 1fr !important; }
+    .dash-session-grid { grid-template-columns: 1fr !important; }
+  }
+  @media (max-width: 400px) {
+    .dash-stats-row { grid-template-columns: repeat(2, 1fr) !important; }
+    .dash-stats-row > div:nth-child(5) { grid-column: span 2; }
+    .dash-tab { padding: 0.35rem 0.5rem !important; font-size: 11px !important; }
+  }
+`
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const user     = JSON.parse(localStorage.getItem('user') || '{}')
@@ -585,6 +613,7 @@ export default function Dashboard() {
 
   if (loading) return (
     <div style={s.page}>
+      <style>{DASHBOARD_STYLES}</style>
       <div style={s.nav}>
         <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
       </div>
@@ -597,6 +626,7 @@ export default function Dashboard() {
 
   if (error) return (
     <div style={s.page}>
+      <style>{DASHBOARD_STYLES}</style>
       <div style={s.nav}>
         <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
         <button onClick={logout} style={s.navGhost}>Logout</button>
@@ -611,50 +641,7 @@ export default function Dashboard() {
 
   return (
     <div style={s.page}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-in { animation: fadeIn 0.4s ease forwards; }
-        .btn-press:active { transform: scale(0.97); }
-        .session-card-hover:hover { border-color: rgba(192,193,255,0.2) !important; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-        .stat-card-hover:hover { border-color: rgba(255,255,255,0.12) !important; }
-        .nav-ghost-hover:hover { color: rgba(228,225,237,0.8) !important; }
-        .chart-card-hover:hover { border-color: rgba(255,255,255,0.1) !important; }
-
-
-        /* ── Mobile responsive ── */
-        @media (max-width: 640px) {
-          .dash-nav-right { gap: 0.35rem !important; flex-wrap: nowrap !important; }
-          .dash-greeting  { display: none !important; }
-          .dash-nav-reset span { display: none; }
-          .dash-nav-reset::before { content: '🗑'; font-size: 14px; }
-
-          .dash-stats-row {
-            grid-template-columns: repeat(3, 1fr) !important;
-          }
-          .dash-stat-value { font-size: 22px !important; }
-
-          .dash-tab-bar {
-            width: 100% !important;
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            border-radius: 12px !important;
-          }
-          .dash-tab { padding: 0.4rem 0.65rem !important; font-size: 11px !important; }
-
-          .dash-content { padding: 1rem 12px !important; }
-          .dash-title   { font-size: 20px !important; }
-
-          .dash-two-col { grid-template-columns: 1fr !important; }
-          .dash-session-grid { grid-template-columns: 1fr !important; }
-        }
-
-        @media (max-width: 400px) {
-          .dash-stats-row { grid-template-columns: repeat(2, 1fr) !important; }
-          .dash-stats-row > div:nth-child(5) { grid-column: span 2; }
-          .dash-tab { padding: 0.35rem 0.5rem !important; font-size: 11px !important; }
-        }
-      `}</style>
+      <style>{DASHBOARD_STYLES}</style>
       {/* Nav */}
       <nav style={s.nav}>
         <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
@@ -994,7 +981,6 @@ const s = {
   page: {
     minHeight: '100vh',
     width: '100%',
-    overflowX: 'hidden',
     background: '#080810',
     backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(73,75,214,0.15) 0%, transparent 50%)',
     color: '#e4e1ed',

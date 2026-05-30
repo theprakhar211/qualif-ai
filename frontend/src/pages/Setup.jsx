@@ -464,7 +464,6 @@ const s = {
   page: {
     minHeight: '100vh',
     width: '100%',
-    overflowX: 'hidden',
     background: '#030308',
     backgroundImage: 'radial-gradient(circle at 50% 15%, rgba(37,99,235,0.12) 0%, transparent 50%), radial-gradient(circle at 0% 0%, rgba(37,99,235,0.05) 0%, transparent 40%), radial-gradient(circle at 100% 100%, rgba(37,99,235,0.03) 0%, transparent 40%)',
     color: '#e4e1ed',
