@@ -103,7 +103,7 @@ export default function Setup() {
   const duration = isComplete ? '45–60 minutes' : '20–25 minutes'
 
   return (
-    <div style={s.page}>
+    <div style={s.page} className="setup-page">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -118,6 +118,41 @@ export default function Setup() {
         .type-card-hover:hover { border-color: rgba(255,255,255,0.2) !important; background: rgba(255,255,255,0.04) !important; }
         .diff-hover:hover { border-color: rgba(255,255,255,0.15) !important; }
         .upload-hover:hover { border-color: rgba(37,99,235,0.5) !important; background: rgba(37,99,235,0.04) !important; }
+
+        /* ── Global overflow clamp ── */
+        html, body, #root { overflow-x: hidden; max-width: 100vw; }
+
+        /* ── Mobile ── */
+        @media (max-width: 640px) {
+          .setup-page { padding-bottom: 4rem !important; }
+
+          .setup-nav { padding: 0 12px !important; height: 56px !important; }
+          .setup-nav-name { display: none !important; }
+          .setup-nav-ghost { font-size: 12px !important; padding: 0.3rem 0.6rem !important; }
+
+          .setup-main { padding: 1.5rem 12px !important; }
+          .setup-header-title { font-size: clamp(26px, 8vw, 36px) !important; }
+
+          .setup-card { padding: 1.25rem !important; border-radius: 16px !important; }
+          .setup-step { padding-bottom: 1.5rem !important; margin-bottom: 1.5rem !important; }
+          .setup-step-num { font-size: 24px !important; min-width: 36px !important; }
+          .setup-section-title { font-size: 18px !important; }
+
+          .setup-type-grid { grid-template-columns: 1fr 1fr !important; gap: 0.5rem !important; }
+          .setup-type-card { padding: 0.875rem !important; }
+          .setup-type-icon { font-size: 22px !important; }
+          .setup-type-label { font-size: 13px !important; }
+          .setup-type-desc { font-size: 11px !important; }
+
+          .setup-role-btn { font-size: 12px !important; padding: 0.45rem 0.75rem !important; }
+          .setup-topic-btn { font-size: 11px !important; padding: 0.4rem 0.65rem !important; }
+
+          .setup-diff-grid { gap: 0.5rem !important; }
+          .setup-diff-btn { padding: 0.75rem 0.5rem !important; }
+          .setup-diff-label { font-size: 11px !important; }
+
+          .setup-start-btn { font-size: 15px !important; padding: 1rem 1.5rem !important; }
+        }
       `}</style>
 
       {/* Background radial glows */}
@@ -125,7 +160,7 @@ export default function Setup() {
       <div style={s.bgGlow2} />
 
       {/* Navbar */}
-      <nav style={s.nav}>
+      <nav style={s.nav} className="setup-nav">
         <img
           src="/logo.png"
           alt="Qualif-AI"
@@ -135,18 +170,18 @@ export default function Setup() {
         <div style={s.navRight}>
           <div style={s.navUser}>
             <div style={s.navAvatar}>{user.name?.charAt(0)?.toUpperCase() || 'U'}</div>
-            <span style={s.navName}>{user.name}</span>
+            <span style={s.navName} className="setup-nav-name">{user.name}</span>
           </div>
-          <button onClick={() => navigate('/dashboard')} style={s.navGhost}>Dashboard</button>
-          <button onClick={logout} style={s.navLogout}>Logout</button>
+          <button onClick={() => navigate('/dashboard')} style={s.navGhost} className="setup-nav-ghost">Dashboard</button>
+          <button onClick={logout} style={s.navLogout} className="setup-nav-ghost">Logout</button>
         </div>
       </nav>
 
-      <main style={s.main}>
+      <main style={s.main} className="setup-main">
         {/* Page header */}
         <header style={s.header} className="setup-fade">
           <span style={s.headerEyebrow}>Interview Setup</span>
-          <h1 style={s.headerTitle}>Set up your interview</h1>
+          <h1 style={s.headerTitle} className="setup-header-title">Set up your interview</h1>
           <p style={s.headerSub}>Configure your session and start practicing in under a minute</p>
         </header>
 
@@ -154,7 +189,7 @@ export default function Setup() {
         <div style={s.cardGlow} />
 
         {/* Main card */}
-        <div style={s.card} className="setup-fade">
+        <div style={s.card} className="setup-fade setup-card">
           <div style={s.sections}>
 
             {/* ── Step 00 — Session Type ── */}
@@ -349,7 +384,7 @@ export default function Setup() {
                 <span style={s.stepNum}>04</span>
                 <h2 style={s.sectionTitle}>Difficulty Level</h2>
               </div>
-              <div style={s.diffGrid}>
+              <div style={s.diffGrid} className="setup-diff-grid">
                 {['easy', 'medium', 'hard'].map(d => {
                   const active = difficulty === d
                   const color  = DIFFICULTY_COLORS[d]
@@ -358,7 +393,7 @@ export default function Setup() {
                     <button
                       key={d}
                       onClick={() => setDifficulty(d)}
-                      className={active ? '' : 'diff-hover'}
+                      className={`setup-diff-btn ${active ? '' : 'diff-hover'}`}
                       style={{
                         ...s.diffCard,
                         background: active ? `rgba(${d === 'easy' ? '34,197,94' : d === 'medium' ? '37,99,235' : '239,68,68'},0.08)` : 'rgba(255,255,255,0.02)',
@@ -366,7 +401,7 @@ export default function Setup() {
                         boxShadow: active ? `0 0 20px ${color}22` : 'none',
                       }}
                     >
-                      <span style={{ ...s.diffLabel, color: active ? color : 'rgba(228,225,237,0.35)' }}>
+                      <span style={{ ...s.diffLabel, color: active ? color : 'rgba(228,225,237,0.35)' }} className="setup-diff-label">
                         {d.toUpperCase()}
                       </span>
                       <div style={s.diffBarBg}>
@@ -393,7 +428,7 @@ export default function Setup() {
               <button
                 onClick={handleStart}
                 disabled={!canStart}
-                className={canStart ? 'start-glow' : ''}
+                className={`setup-start-btn ${canStart ? 'start-glow' : ''}`}
                 style={{
                   ...s.startBtn,
                   opacity:    canStart ? 1 : 0.35,
@@ -431,6 +466,8 @@ export default function Setup() {
 const s = {
   page: {
     minHeight: '100vh',
+    width: '100%',
+    overflowX: 'hidden',
     background: '#030308',
     backgroundImage: 'radial-gradient(circle at 50% 15%, rgba(37,99,235,0.12) 0%, transparent 50%), radial-gradient(circle at 0% 0%, rgba(37,99,235,0.05) 0%, transparent 40%), radial-gradient(circle at 100% 100%, rgba(37,99,235,0.03) 0%, transparent 40%)',
     color: '#e4e1ed',

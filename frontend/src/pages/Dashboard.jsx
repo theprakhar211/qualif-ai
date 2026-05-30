@@ -621,12 +621,48 @@ export default function Dashboard() {
         .stat-card-hover:hover { border-color: rgba(255,255,255,0.12) !important; }
         .nav-ghost-hover:hover { color: rgba(228,225,237,0.8) !important; }
         .chart-card-hover:hover { border-color: rgba(255,255,255,0.1) !important; }
+
+        /* ── Global overflow clamp ── */
+        html, body, #root { overflow-x: hidden; max-width: 100vw; }
+
+        /* ── Mobile responsive ── */
+        @media (max-width: 640px) {
+          .dash-nav-right { gap: 0.35rem !important; flex-wrap: nowrap !important; }
+          .dash-greeting  { display: none !important; }
+          .dash-nav-reset span { display: none; }
+          .dash-nav-reset::before { content: '🗑'; font-size: 14px; }
+
+          .dash-stats-row {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+          .dash-stat-value { font-size: 22px !important; }
+
+          .dash-tab-bar {
+            width: 100% !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            border-radius: 12px !important;
+          }
+          .dash-tab { padding: 0.4rem 0.65rem !important; font-size: 11px !important; }
+
+          .dash-content { padding: 1rem 12px !important; }
+          .dash-title   { font-size: 20px !important; }
+
+          .dash-two-col { grid-template-columns: 1fr !important; }
+          .dash-session-grid { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 400px) {
+          .dash-stats-row { grid-template-columns: repeat(2, 1fr) !important; }
+          .dash-stats-row > div:nth-child(5) { grid-column: span 2; }
+          .dash-tab { padding: 0.35rem 0.5rem !important; font-size: 11px !important; }
+        }
       `}</style>
       {/* Nav */}
       <nav style={s.nav}>
         <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
-        <div style={s.navRight}>
-          <span style={{ ...s.greeting, display: 'block' }}>Hey, {user.name?.split(' ')[0]} 👋</span>
+        <div style={s.navRight} className="dash-nav-right">
+          <span style={{ ...s.greeting, display: 'block' }} className="dash-greeting">Hey, {user.name?.split(' ')[0]} 👋</span>
           <button onClick={() => navigate('/app')} style={s.navPrimary} className="btn-press">
             + New interview
           </button>
@@ -642,16 +678,16 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div style={s.content}>
+      <div style={s.content} className="dash-content">
         {/* Dashboard header */}
         <div style={s.dashHeader}>
-          <h1 style={s.dashTitle}>Dashboard Overview</h1>
+          <h1 style={s.dashTitle} className="dash-title">Dashboard Overview</h1>
           <p style={s.dashSub}>Your interview performance metrics and skill progression.</p>
         </div>
 
         {/* Stats row */}
         {stats && (
-          <div style={s.statsRow} className="fade-in">
+          <div style={s.statsRow} className="fade-in dash-stats-row">
             {[
               { label: 'Total sessions',  value: stats.total_sessions,    icon: '🎯' },
               { label: 'Completed',       value: stats.completed_sessions, icon: '✅' },
@@ -675,7 +711,7 @@ export default function Dashboard() {
         )}
 
         {/* Tab bar */}
-        <div style={s.tabBar}>
+        <div style={s.tabBar} className="dash-tab-bar">
           {[
             { id: 'overview', label: 'Overview',   icon: '📈' },
             { id: 'skills',   label: 'Skill Graph', icon: '🧠' },
@@ -686,7 +722,7 @@ export default function Dashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{ ...s.tab, ...(activeTab === tab.id ? s.tabActive : {}) }}
-              className="btn-press"
+              className="btn-press dash-tab"
             >
               <span style={{ fontSize: '14px' }}>{tab.icon}</span>
               {tab.label}
@@ -751,7 +787,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div style={s.twoCol}>
+            <div style={s.twoCol} className="dash-two-col">
               {/* Weak areas */}
               <div style={s.chartCard}>
                 <h3 style={s.chartTitle}>Weak areas</h3>
@@ -842,7 +878,7 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              <div style={s.sessionGrid}>
+              <div style={s.sessionGrid} className="dash-session-grid">
                 {sessions.map(session => (
                   <div key={session.id} onClick={() => loadDetail(session.id)} style={s.sessionCard} className="btn-press">
                     <div style={s.sessionCardTop}>
@@ -960,6 +996,8 @@ const STAT_ACCENTS = {
 const s = {
   page: {
     minHeight: '100vh',
+    width: '100%',
+    overflowX: 'hidden',
     background: '#080810',
     backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(73,75,214,0.15) 0%, transparent 50%)',
     color: '#e4e1ed',
