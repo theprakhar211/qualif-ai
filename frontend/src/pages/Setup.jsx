@@ -105,6 +105,7 @@ export default function Setup() {
   return (
     <div style={s.page}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes shimmerGlow {
@@ -435,6 +436,7 @@ const s = {
     color: '#e4e1ed',
     position: 'relative',
     paddingBottom: '6rem',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
   },
 
   bgGlow1: {
@@ -487,6 +489,7 @@ const s = {
   headerTitle: {
     fontSize: 'clamp(36px, 6vw, 52px)', fontWeight: '800', lineHeight: 1.1,
     letterSpacing: '-0.02em', color: '#fff', marginBottom: '12px',
+    fontFamily: "'Geist', sans-serif",
   },
   headerSub: { color: 'rgba(228,225,237,0.4)', fontSize: '17px' },
 
@@ -520,10 +523,12 @@ const s = {
     color: '#2563eb',
     textShadow: '0 0 20px rgba(37,99,235,0.6)',
     flexShrink: 0, minWidth: '48px',
+    fontFamily: "'Geist', sans-serif",
   },
   sectionTitle: {
     fontSize: '22px', fontWeight: '700', color: '#fff',
     letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '0',
+    fontFamily: "'Geist', sans-serif",
   },
 
   tagOptional: {
@@ -605,12 +610,12 @@ const s = {
   // Resume upload
   uploadBox: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    gap: '12px', border: '2px dashed rgba(255,255,255,0.08)',
-    borderRadius: '16px', padding: '3rem 2rem',
+    gap: '10px', border: '2px dashed rgba(255,255,255,0.08)',
+    borderRadius: '16px', padding: '1.5rem 2rem',
     cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center',
   },
   uploadIcon: {
-    width: '56px', height: '56px', borderRadius: '14px',
+    width: '44px', height: '44px', borderRadius: '12px',
     background: 'rgba(255,255,255,0.04)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
@@ -654,6 +659,7 @@ const s = {
     border: 'none', borderRadius: '9999px',
     fontSize: '18px', fontWeight: '700', letterSpacing: '0.01em',
     transition: 'opacity 0.2s, transform 0.1s',
+    fontFamily: "'Geist', sans-serif",
   },
 
   durationHint: {
