@@ -128,16 +128,16 @@ export default function Setup() {
             padding-bottom: 4rem !important; 
             max-width: 100% !important;
             box-sizing: border-box !important;
-            -webkit-overflow-scrolling: touch !important; /* Fixed: Forces normal touch gesture response */
           }
 
-          .setup-nav { padding: 0 12px !important; height: 56px !important; }
+          .setup-nav { padding: 0 12px !important; height: 56px !important; box-sizing: border-box !important; }
           .setup-nav-name { display: none !important; }
           .setup-nav-ghost { font-size: 12px !important; padding: 0.3rem 0.6rem !important; }
 
           .setup-main { 
             padding: 1.5rem 12px !important; 
             width: 100% !important;
+            max-width: 100% !important;
             box-sizing: border-box !important;
           }
           .setup-header-title { font-size: clamp(26px, 8vw, 36px) !important; }
@@ -146,24 +146,32 @@ export default function Setup() {
             padding: 1.25rem !important; 
             border-radius: 16px !important; 
             width: 100% !important;
+            max-width: 100% !important;
             box-sizing: border-box !important;
           }
           .setup-step { padding-bottom: 1.5rem !important; margin-bottom: 1.5rem !important; }
           .setup-step-num { font-size: 24px !important; min-width: 36px !important; }
           .setup-section-title { font-size: 18px !important; }
 
-          .setup-type-grid { grid-template-columns: 1fr 1fr !important; gap: 0.5rem !important; }
-          .setup-type-card { padding: 0.875rem !important; }
-          .setup-type-icon { font-size: 22px !important; }
-          .setup-type-card-title { font-size: 14px !important; }
-          .setup-type-desc { font-size: 11px !important; }
+          /* Fixed: Forcing responsive column resizing and absolute width box bounds */
+          .setup-type-grid { 
+            grid-template-columns: 1fr !important; 
+            gap: 0.75rem !important; 
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .setup-type-card { padding: 1.25rem !important; width: 100% !important; box-sizing: border-box !important; }
+          .setup-type-icon { font-size: 26px !important; }
+          .setup-type-card-title { font-size: 15px !important; }
+          .setup-type-desc { font-size: 12px !important; }
 
           .setup-role-btn { font-size: 12px !important; padding: 0.45rem 0.75rem !important; }
           .setup-topic-btn { font-size: 11px !important; padding: 0.4rem 0.65rem !important; }
 
-          .setup-diff-grid { gap: 0.5rem !important; }
-          .setup-diff-btn { padding: 0.75rem 0.5rem !important; }
-          .setup-diff-label { font-size: 11px !important; }
+          /* Fixed: Ensuring difficulty options stack neatly to prevent horizontal line overflow */
+          .setup-diff-grid { grid-template-columns: 1fr !important; gap: 0.5rem !important; width: 100% !important; }
+          .setup-diff-btn { padding: 1rem 0.75rem !important; width: 100% !important; box-sizing: border-box !important; }
+          .setup-diff-label { font-size: 12px !important; }
 
           .setup-start-btn { 
             font-size: 15px !important; 
