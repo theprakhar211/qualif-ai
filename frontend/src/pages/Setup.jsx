@@ -111,7 +111,6 @@ export default function Setup() {
           0%, 100% { box-shadow: 0 0 30px -8px rgba(37,99,235,0.6), 0 4px 24px rgba(37,99,235,0.25); }
           50%       { box-shadow: 0 0 50px -4px rgba(37,99,235,0.8), 0 4px 32px rgba(37,99,235,0.35); }
         }
-        /* Fixed: Added spin keyframes for the loading spinner */
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -127,9 +126,9 @@ export default function Setup() {
         @media (max-width: 640px) {
           .setup-page { 
             padding-bottom: 4rem !important; 
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
+            max-width: 100% !important;
             box-sizing: border-box !important;
+            -webkit-overflow-scrolling: touch !important; /* Fixed: Forces normal touch gesture response */
           }
 
           .setup-nav { padding: 0 12px !important; height: 56px !important; }
