@@ -241,7 +241,7 @@ const s = {
   leftInner: { maxWidth: '420px', width: '100%', position: 'relative', zIndex: 2 },
   tagline: {
     fontFamily: "'Geist', sans-serif",
-    fontSize: '44px', fontWeight: '800',
+    fontSize: '36px', fontWeight: '800',
     lineHeight: 1.1, letterSpacing: '-0.02em',
     marginBottom: '1.5rem',
   },
