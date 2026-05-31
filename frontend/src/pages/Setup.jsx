@@ -123,19 +123,32 @@ export default function Setup() {
         .diff-hover:hover { border-color: rgba(255,255,255,0.15) !important; }
         .upload-hover:hover { border-color: rgba(37,99,235,0.5) !important; background: rgba(37,99,235,0.04) !important; }
 
-
-        /* ── Mobile ── */
+        /* ── Mobile Responsive Adjustments ── */
         @media (max-width: 640px) {
-          .setup-page { padding-bottom: 4rem !important; }
+          .setup-page { 
+            padding-bottom: 4rem !important; 
+            max-width: 100vw !important;
+            overflow-x: hidden !important;
+            box-sizing: border-box !important;
+          }
 
           .setup-nav { padding: 0 12px !important; height: 56px !important; }
           .setup-nav-name { display: none !important; }
           .setup-nav-ghost { font-size: 12px !important; padding: 0.3rem 0.6rem !important; }
 
-          .setup-main { padding: 1.5rem 12px !important; }
+          .setup-main { 
+            padding: 1.5rem 12px !important; 
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
           .setup-header-title { font-size: clamp(26px, 8vw, 36px) !important; }
 
-          .setup-card { padding: 1.25rem !important; border-radius: 16px !important; }
+          .setup-card { 
+            padding: 1.25rem !important; 
+            border-radius: 16px !important; 
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
           .setup-step { padding-bottom: 1.5rem !important; margin-bottom: 1.5rem !important; }
           .setup-step-num { font-size: 24px !important; min-width: 36px !important; }
           .setup-section-title { font-size: 18px !important; }
@@ -143,7 +156,7 @@ export default function Setup() {
           .setup-type-grid { grid-template-columns: 1fr 1fr !important; gap: 0.5rem !important; }
           .setup-type-card { padding: 0.875rem !important; }
           .setup-type-icon { font-size: 22px !important; }
-          .setup-type-label { font-size: 13px !important; }
+          .setup-type-card-title { font-size: 14px !important; }
           .setup-type-desc { font-size: 11px !important; }
 
           .setup-role-btn { font-size: 12px !important; padding: 0.45rem 0.75rem !important; }
@@ -153,7 +166,12 @@ export default function Setup() {
           .setup-diff-btn { padding: 0.75rem 0.5rem !important; }
           .setup-diff-label { font-size: 11px !important; }
 
-          .setup-start-btn { font-size: 15px !important; padding: 1rem 1.5rem !important; }
+          .setup-start-btn { 
+            font-size: 15px !important; 
+            padding: 1rem 1.5rem !important; 
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
         }
       `}</style>
 
@@ -200,28 +218,27 @@ export default function Setup() {
                 <span style={s.stepNum}>00</span>
                 <h2 style={s.sectionTitle}>Choose Session Type</h2>
               </div>
-              <div style={s.typeGrid}>
+              <div style={s.typeGrid} className="setup-type-grid">
                 {INTERVIEW_TYPES.map(t => {
                   const active = interviewType === t.id
                   return (
                     <button
                       key={t.id}
                       onClick={() => handleTypeChange(t.id)}
-                      className={active ? '' : 'type-card-hover'}
+                      className={`setup-type-card ${active ? '' : 'type-card-hover'}`}
                       style={{
                         ...s.typeCard,
                         ...(active ? s.typeCardActive : {}),
                       }}
                     >
                       {active && <div style={s.typeCardCheck}>✓</div>}
-                      {/* Icon using text emoji fallback */}
-                      <span style={{ fontSize: '32px', marginBottom: '12px', display: 'block' }}>
+                      <span style={{ fontSize: '32px', marginBottom: '12px', display: 'block' }} className="setup-type-icon">
                         {t.id === 'quick' ? '⚡' : '🎯'}
                       </span>
-                      <h3 style={{ ...s.typeCardTitle, color: active ? '#fff' : 'rgba(228,225,237,0.7)' }}>
+                      <h3 style={{ ...s.typeCardTitle, color: active ? '#fff' : 'rgba(228,225,237,0.7)' }} className="setup-type-card-title">
                         {t.label}
                       </h3>
-                      <p style={s.typeCardDesc}>{t.desc}</p>
+                      <p style={s.typeCardDesc} className="setup-type-desc">{t.desc}</p>
                       {t.requiresResume && (
                         <span style={s.typeCardTag}>Requires resume</span>
                       )}
@@ -263,7 +280,7 @@ export default function Setup() {
                     <button
                       key={r}
                       onClick={() => handleRoleChange(r)}
-                      className={active ? '' : 'pill-hover'}
+                      className={`setup-role-btn ${active ? '' : 'pill-hover'}`}
                       style={{
                         ...s.pill,
                         ...(active ? s.pillActive : s.pillInactive),
@@ -276,7 +293,7 @@ export default function Setup() {
               </div>
             </section>
 
-            {/* ── Step 02 — Topics (only after role selected) ── */}
+            {/* ── Step 02 — Topics ── */}
             {role && (
               <section style={s.section} className="setup-fade">
                 <div style={s.sectionHead}>
@@ -290,7 +307,7 @@ export default function Setup() {
                       <button
                         key={t}
                         onClick={() => toggleTopic(t)}
-                        className={active ? '' : 'pill-hover'}
+                        className={`setup-topic-btn ${active ? '' : 'pill-hover'}`}
                         style={{
                           ...s.pillSm,
                           ...(active ? s.pillActive : s.pillInactive),
