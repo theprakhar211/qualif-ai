@@ -505,8 +505,10 @@ function ScoreRing({ score, size = 80 }) {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 const DASHBOARD_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Geist:wght=600;700;800;900&family=Inter:wght=400;500;600&display=swap');
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .spin-loader { animation: spin 0.9s linear infinite !important; }
   .fade-in { animation: fadeIn 0.4s ease forwards; }
   .btn-press:active { transform: scale(0.97); }
   .session-card-hover:hover { border-color: rgba(192,193,255,0.2) !important; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
@@ -618,7 +620,7 @@ export default function Dashboard() {
         <img src="/logo.png" alt="Qualif-AI" style={{ height: '40px', objectFit: 'contain' }} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '1rem' }}>
-        <div style={s.spinner} />
+        <div style={s.spinner} className="spin-loader" />
         <p style={{ color: '#444', fontSize: '14px' }}>Loading your dashboard...</p>
       </div>
     </div>
@@ -907,7 +909,7 @@ export default function Dashboard() {
           <div className="fade-in">
             {detailLoading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '2rem 0' }}>
-                <div style={{ ...s.spinner, width: '24px', height: '24px', borderWidth: '2px' }} />
+                <div style={{ ...s.spinner, width: '24px', height: '24px', borderWidth: '2px' }} className="spin-loader" />
                 <span style={s.muted}>Loading session...</span>
               </div>
             )}
