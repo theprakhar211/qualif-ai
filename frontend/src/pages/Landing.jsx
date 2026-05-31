@@ -84,6 +84,65 @@ export default function Landing() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+
+        /* ── Fixed background layers ── */
+        .landing-bg-grid {
+          position: fixed; inset: 0; z-index: 0; pointer-events: none;
+          background-image:
+            linear-gradient(to right,  rgba(255,255,255,0.025) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+          background-size: 40px 40px;
+        }
+        .landing-orb-1 {
+          position: fixed; z-index: 0; pointer-events: none;
+          top: -10%; left: -10%; width: 50%; height: 50%;
+          background: radial-gradient(circle at center, rgba(37,99,235,0.12) 0%, transparent 70%);
+          animation: orbDrift1 10s ease-in-out infinite;
+        }
+        .landing-orb-2 {
+          position: fixed; z-index: 0; pointer-events: none;
+          bottom: -10%; right: -10%; width: 50%; height: 50%;
+          background: radial-gradient(circle at center, rgba(37,99,235,0.08) 0%, transparent 70%);
+          animation: orbDrift2 10s ease-in-out infinite;
+          animation-delay: -5s;
+        }
+        @keyframes orbDrift1 {
+          0%,100% { transform: translate(0,0); }
+          50%      { transform: translate(10px,-20px); }
+        }
+        @keyframes orbDrift2 {
+          0%,100% { transform: translate(0,0); }
+          50%      { transform: translate(-10px,20px); }
+        }
+
+        /* ── Hover effects ── */
+        .feature-card-hover:hover {
+          border-color: rgba(37,99,235,0.3) !important;
+          box-shadow: 0 0 30px rgba(37,99,235,0.08) !important;
+          transform: translateY(-2px);
+        }
+        .role-chip-hover:hover {
+          border-color: rgba(37,99,235,0.4) !important;
+          color: #93c5fd !important;
+        }
+        .cta-btn-hover:hover {
+          box-shadow: 0 0 40px rgba(37,99,235,0.4) !important;
+          transform: scale(1.03);
+        }
+        .cta-btn-hover:active { transform: scale(0.97); }
+        .hero-cta-hover:hover {
+          box-shadow: 0 0 30px rgba(37,99,235,0.35) !important;
+          transform: translateY(-1px);
+        }
+        .hero-cta-hover:active { transform: scale(0.97); }
+      `}</style>
+
+      {/* Background layers */}
+      <div className="landing-bg-grid" />
+      <div className="landing-orb-1" />
+      <div className="landing-orb-2" />
       {/* Navbar */}
       <nav style={{
         ...styles.nav,
@@ -128,7 +187,7 @@ export default function Landing() {
         </div>
 
         <div style={styles.heroButtons}>
-          <button onClick={handleCTA} style={styles.heroCTA}>
+          <button onClick={handleCTA} style={styles.heroCTA} className="hero-cta-hover">
             Start practicing free →
           </button>
           <button
@@ -177,13 +236,13 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section style={{ ...styles.section, background: '#080808' }}>
+      <section style={{ ...styles.section }}>
         <div style={styles.sectionInner}>
           <div style={styles.sectionTag}>Features</div>
           <h2 style={styles.sectionTitle}>Everything you need to prep properly</h2>
           <div style={styles.featuresGrid}>
             {FEATURES.map((f, i) => (
-              <div key={i} style={styles.featureCard}>
+              <div key={i} style={styles.featureCard} className="feature-card-hover">
                 <div style={styles.featureIcon}>{f.icon}</div>
                 <h3 style={styles.featureTitle}>{f.title}</h3>
                 <p style={styles.featureDesc}>{f.desc}</p>
@@ -218,7 +277,7 @@ export default function Landing() {
       </section>
 
       {/* Roles section */}
-      <section style={{ ...styles.section, background: '#080808' }}>
+      <section style={{ ...styles.section }}>
         <div style={styles.sectionInner}>
           <div style={styles.sectionTag}>Roles</div>
           <h2 style={styles.sectionTitle}>Prep for the role you want</h2>
@@ -228,6 +287,7 @@ export default function Landing() {
                 key={r}
                 onClick={handleCTA}
                 style={styles.roleChip}
+                className="role-chip-hover"
               >
                 {r}
               </button>
@@ -238,6 +298,7 @@ export default function Landing() {
 
       {/* CTA section */}
       <section style={styles.ctaSection}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '600px', height: '600px', background: 'rgba(37,99,235,0.08)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
         <div style={styles.sectionInner}>
           <h2 style={styles.ctaTitle}>
             Your next interview<br />starts here
@@ -246,7 +307,7 @@ export default function Landing() {
             Free to use. No account required to explore.
             AI-powered feedback in under 10 minutes.
           </p>
-          <button onClick={handleCTA} style={styles.ctaButton}>
+          <button onClick={handleCTA} style={styles.ctaButton} className="cta-btn-hover">
             Start your mock interview →
           </button>
         </div>
@@ -281,10 +342,11 @@ export default function Landing() {
 
 const styles = {
   page: {
-    background: '#0a0a0a',
-    color: '#fff',
+    background: '#030308',
+    color: '#e4e1ed',
     minHeight: '100vh',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    position: 'relative',
   },
   nav: {
     position: 'fixed',
@@ -295,10 +357,11 @@ const styles = {
     alignItems: 'center',
     padding: '1rem 2rem',
     transition: 'background 0.3s, border-color 0.3s',
+    backdropFilter: 'blur(16px)',
   },
-  navRight:    { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  navGhost:    { background: 'transparent', border: '1px solid #2a2a2a', color: '#aaa', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' },
-  navPrimary:  { background: '#6366f1', border: 'none', color: '#fff', padding: '0.45rem 1.1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' },
+  navRight:   { display: 'flex', alignItems: 'center', gap: '0.75rem' },
+  navGhost:   { background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', transition: 'all 0.15s' },
+  navPrimary: { background: '#2563eb', border: 'none', color: '#fff', padding: '0.45rem 1.25rem', borderRadius: '9999px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 16px rgba(37,99,235,0.3)', transition: 'all 0.15s' },
 
   hero: {
     minHeight: '100vh',
@@ -310,46 +373,52 @@ const styles = {
     padding: '8rem 1.5rem 4rem',
     maxWidth: '860px',
     margin: '0 auto',
+    position: 'relative', zIndex: 1,
   },
   heroBadge: {
-    background: '#1a1a2e',
-    border: '1px solid #6366f1',
-    color: '#a5b4fc',
+    background: 'rgba(37,99,235,0.1)',
+    border: '1px solid rgba(37,99,235,0.25)',
+    color: '#93c5fd',
     padding: '0.35rem 1rem',
-    borderRadius: '20px',
+    borderRadius: '9999px',
     fontSize: '13px',
     marginBottom: '2rem',
+    backdropFilter: 'blur(8px)',
+    fontWeight: '500',
   },
   heroTitle: {
+    fontFamily: "'Geist', sans-serif",
     fontSize: 'clamp(42px, 7vw, 80px)',
-    fontWeight: '700',
+    fontWeight: '800',
     lineHeight: '1.1',
     marginBottom: '1.5rem',
-    letterSpacing: '-0.02em',
+    letterSpacing: '-0.03em',
+    color: '#fff',
   },
   heroAccent: {
-    background: 'linear-gradient(135deg, #6366f1, #a855f7)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    color: '#2563eb',
+    textShadow: '0 0 30px rgba(37,99,235,0.5)',
   },
   heroSub: {
     fontSize: '18px',
-    color: '#888',
+    color: '#94A3B8',
     lineHeight: '1.7',
     maxWidth: '580px',
     marginBottom: '2rem',
   },
   rolePill: {
-    background: '#111',
-    border: '1px solid #2a2a2a',
-    borderRadius: '20px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '9999px',
     padding: '0.5rem 1.25rem',
     fontSize: '14px',
-    color: '#666',
+    color: '#64748B',
     marginBottom: '2rem',
+    backdropFilter: 'blur(8px)',
+    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
   },
   rolePillRole: {
-    color: '#6366f1',
+    color: '#2563eb',
     fontWeight: '600',
     transition: 'opacity 0.3s',
   },
@@ -361,147 +430,171 @@ const styles = {
     marginBottom: '1.5rem',
   },
   heroCTA: {
-    background: '#6366f1',
+    background: '#2563eb',
     color: '#fff',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '9999px',
     padding: '0.9rem 2rem',
     fontSize: '16px',
-    fontWeight: '600',
+    fontWeight: '700',
     cursor: 'pointer',
+    boxShadow: '0 10px 30px rgba(37,99,235,0.25)',
+    transition: 'all 0.2s',
+    fontFamily: "'Geist', sans-serif",
   },
   heroSecondary: {
     background: 'transparent',
-    color: '#888',
-    border: '1px solid #2a2a2a',
-    borderRadius: '10px',
+    color: '#94A3B8',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '9999px',
     padding: '0.9rem 2rem',
     fontSize: '16px',
     cursor: 'pointer',
+    backdropFilter: 'blur(8px)',
+    transition: 'all 0.15s',
   },
-  heroNote: { color: '#444', fontSize: '13px' },
+  heroNote: { color: '#374151', fontSize: '13px' },
 
   statsBar: {
     display: 'flex',
     justifyContent: 'center',
     gap: '0',
-    borderTop: '1px solid #1a1a1a',
-    borderBottom: '1px solid #1a1a1a',
-    background: '#0d0d0d',
+    borderTop: '1px solid rgba(255,255,255,0.05)',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    background: 'rgba(13,13,21,0.3)',
+    backdropFilter: 'blur(12px)',
     flexWrap: 'wrap',
+    position: 'relative', zIndex: 1,
   },
   statItem: {
     padding: '1.5rem 3rem',
     textAlign: 'center',
-    borderRight: '1px solid #1a1a1a',
+    borderRight: '1px solid rgba(255,255,255,0.05)',
   },
-  statValue: { fontSize: '28px', fontWeight: '700', color: '#fff', marginBottom: '4px' },
-  statLabel: { fontSize: '13px', color: '#555' },
+  statValue: { fontFamily: "'Geist', sans-serif", fontSize: '28px', fontWeight: '800', color: '#c0c1ff', marginBottom: '4px', letterSpacing: '-0.02em' },
+  statLabel: { fontSize: '13px', color: '#64748B', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase' },
 
-  section: { padding: '6rem 1.5rem', background: '#0a0a0a' },
+  section: { padding: '6rem 1.5rem', background: 'transparent', position: 'relative', zIndex: 1 },
   sectionInner: { maxWidth: '900px', margin: '0 auto' },
   sectionTag: {
     display: 'inline-block',
-    background: '#1a1a2e',
-    border: '1px solid #6366f1',
-    color: '#a5b4fc',
+    background: 'rgba(37,99,235,0.1)',
+    border: '1px solid rgba(37,99,235,0.25)',
+    color: '#93c5fd',
     padding: '0.25rem 0.875rem',
-    borderRadius: '20px',
+    borderRadius: '9999px',
     fontSize: '12px',
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: '1rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.08em',
   },
   sectionTitle: {
+    fontFamily: "'Geist', sans-serif",
     fontSize: 'clamp(28px, 4vw, 42px)',
     fontWeight: '700',
     marginBottom: '3rem',
     lineHeight: '1.2',
+    letterSpacing: '-0.02em',
+    color: '#fff',
   },
 
   stepsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' },
   stepCard: {
-    background: '#111',
-    border: '1px solid #1e1e1e',
-    borderRadius: '12px',
+    background: 'rgba(13,13,21,0.6)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '20px',
     padding: '2rem',
+    transition: 'all 0.3s',
   },
-  stepNumber: { fontSize: '36px', fontWeight: '700', color: '#6366f1', marginBottom: '1rem', opacity: 0.8 },
-  stepTitle:  { fontSize: '18px', fontWeight: '600', marginBottom: '0.75rem' },
-  stepDesc:   { fontSize: '14px', color: '#666', lineHeight: '1.6' },
+  stepNumber: { fontFamily: "'Geist', sans-serif", fontSize: '36px', fontWeight: '800', color: '#2563eb', marginBottom: '1rem', textShadow: '0 0 20px rgba(37,99,235,0.4)', letterSpacing: '-0.04em' },
+  stepTitle:  { fontFamily: "'Geist', sans-serif", fontSize: '18px', fontWeight: '700', marginBottom: '0.75rem', color: '#fff' },
+  stepDesc:   { fontSize: '14px', color: '#94A3B8', lineHeight: '1.6' },
 
   featuresGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' },
   featureCard: {
-    background: '#111',
-    border: '1px solid #1e1e1e',
-    borderRadius: '12px',
+    background: 'rgba(13,13,21,0.6)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '20px',
     padding: '1.75rem',
-    transition: 'border-color 0.2s',
+    transition: 'all 0.3s',
   },
   featureIcon:  { fontSize: '28px', marginBottom: '1rem' },
-  featureTitle: { fontSize: '16px', fontWeight: '600', marginBottom: '0.5rem' },
-  featureDesc:  { fontSize: '14px', color: '#666', lineHeight: '1.6' },
+  featureTitle: { fontFamily: "'Geist', sans-serif", fontSize: '16px', fontWeight: '700', marginBottom: '0.5rem', color: '#fff' },
+  featureDesc:  { fontSize: '14px', color: '#94A3B8', lineHeight: '1.6' },
 
   techGrid: { display: 'flex', flexWrap: 'wrap', gap: '1rem' },
   techCard: {
-    background: '#111',
-    border: '1px solid #1e1e1e',
-    borderRadius: '10px',
+    background: 'rgba(13,13,21,0.6)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '12px',
     padding: '1rem 1.5rem',
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
   },
   techDot:  { width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0 },
-  techName: { fontSize: '15px', fontWeight: '600' },
-  techDesc: { fontSize: '12px', color: '#555', marginLeft: '0.25rem' },
+  techName: { fontFamily: "'Geist', sans-serif", fontSize: '15px', fontWeight: '600', color: '#fff' },
+  techDesc: { fontSize: '12px', color: '#64748B', marginLeft: '0.25rem' },
 
   rolesGrid: { display: 'flex', flexWrap: 'wrap', gap: '0.75rem' },
   roleChip: {
-    background: '#111',
-    border: '1px solid #2a2a2a',
-    color: '#ccc',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.07)',
+    color: '#94A3B8',
     padding: '0.6rem 1.25rem',
-    borderRadius: '8px',
+    borderRadius: '9999px',
     cursor: 'pointer',
     fontSize: '14px',
-    transition: 'border-color 0.2s, color 0.2s',
+    transition: 'all 0.2s',
+    backdropFilter: 'blur(8px)',
   },
 
   ctaSection: {
     padding: '8rem 1.5rem',
     textAlign: 'center',
-    background: '#0a0a0a',
-    borderTop: '1px solid #1a1a1a',
+    borderTop: '1px solid rgba(255,255,255,0.05)',
+    position: 'relative', zIndex: 1,
+    overflow: 'hidden',
   },
   ctaTitle: {
+    fontFamily: "'Geist', sans-serif",
     fontSize: 'clamp(32px, 5vw, 56px)',
-    fontWeight: '700',
+    fontWeight: '800',
     lineHeight: '1.15',
     marginBottom: '1.5rem',
+    letterSpacing: '-0.03em',
+    color: '#fff',
   },
   ctaSub: {
     fontSize: '17px',
-    color: '#666',
+    color: '#94A3B8',
     marginBottom: '2.5rem',
     lineHeight: '1.6',
   },
   ctaButton: {
-    background: '#6366f1',
+    background: '#2563eb',
     color: '#fff',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '9999px',
     padding: '1rem 2.5rem',
     fontSize: '17px',
-    fontWeight: '600',
+    fontWeight: '700',
     cursor: 'pointer',
+    boxShadow: '0 0 40px rgba(37,99,235,0.3)',
+    transition: 'all 0.2s',
+    fontFamily: "'Geist', sans-serif",
   },
 
   footer: {
-    borderTop: '1px solid #1a1a1a',
+    borderTop: '1px solid rgba(255,255,255,0.05)',
     padding: '2.5rem 1.5rem',
-    background: '#080808',
+    background: 'rgba(5,5,10,0.8)',
+    backdropFilter: 'blur(12px)',
+    position: 'relative', zIndex: 1,
   },
   footerInner: {
     maxWidth: '900px',
@@ -511,10 +604,10 @@ const styles = {
     alignItems: 'center',
     gap: '1rem',
   },
-  footerLinks: { display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' },
-  footerText:    { color: '#555', fontSize: '14px' },
-  footerDivider: { color: '#333' },
-  footerLink:    { color: '#555', fontSize: '14px', textDecoration: 'none' },
-  footerBtn:     { background: 'none', border: 'none', color: '#555', fontSize: '14px', cursor: 'pointer', padding: 0 },
-  footerCopy:    { color: '#333', fontSize: '12px' },
+  footerLinks:   { display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' },
+  footerText:    { color: '#374151', fontSize: '14px' },
+  footerDivider: { color: '#1f2937' },
+  footerLink:    { color: '#374151', fontSize: '14px', textDecoration: 'none' },
+  footerBtn:     { background: 'none', border: 'none', color: '#374151', fontSize: '14px', cursor: 'pointer', padding: 0 },
+  footerCopy:    { color: '#1f2937', fontSize: '12px' },
 }
