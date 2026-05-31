@@ -111,6 +111,11 @@ export default function Setup() {
           0%, 100% { box-shadow: 0 0 30px -8px rgba(37,99,235,0.6), 0 4px 24px rgba(37,99,235,0.25); }
           50%       { box-shadow: 0 0 50px -4px rgba(37,99,235,0.8), 0 4px 32px rgba(37,99,235,0.35); }
         }
+        /* Fixed: Added spin keyframes for the loading spinner */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         .setup-fade { animation: fadeUp 0.5s ease-out forwards; }
         .start-glow { animation: shimmerGlow 3s ease-in-out infinite; }
         .pill-hover:hover { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.15) !important; color: #e2e8f0 !important; }
