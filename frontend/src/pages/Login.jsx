@@ -190,7 +190,7 @@ export default function Login() {
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <span style={s.spinner} /> Signing in...
                 </span>
-              ) : 'Sign in to Dashboard'}
+              ) : 'Sign in'}
             </button>
           </form>
 
