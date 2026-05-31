@@ -116,7 +116,6 @@ export default function Setup() {
           100% { transform: rotate(360deg); }
         }
         
-        /* Apply global overflow limits to html/body directly so elements don't drop off the viewport right edge */
         html, body {
           max-width: 100% !important;
           overflow-x: hidden !important;
@@ -175,6 +174,14 @@ export default function Setup() {
           .setup-role-btn { font-size: 12px !important; padding: 0.45rem 0.75rem !important; }
           .setup-topic-btn { font-size: 11px !important; padding: 0.4rem 0.65rem !important; }
 
+          /* Clean Grid stacking for Phase Previews on mobile screen views */
+          .setup-phase-preview {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+          }
+          .setup-phase-connector { display: none !important; }
+
           .setup-diff-grid { grid-template-columns: 1fr !important; gap: 0.5rem !important; width: 100% !important; }
           .setup-diff-btn { padding: 1rem 0.75rem !important; width: 100% !important; box-sizing: border-box !important; }
           .setup-diff-label { font-size: 12px !important; }
@@ -188,7 +195,7 @@ export default function Setup() {
         }
       `}</style>
 
-      {/* Background isolated overflow container so absolute glows can't break page width */}
+      {/* Background elements */}
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
         <div style={s.bgGlow1} />
         <div style={s.bgGlow2} />
@@ -216,7 +223,10 @@ export default function Setup() {
       <main style={s.main} className="setup-main">
         {/* Page header */}
         <header style={s.header} className="setup-fade">
-          <span style={s.headerEyebrow}>Interview Setup</span>
+          <div style={s.headerBadge}>
+            <span style={s.headerBadgeDot} />
+            <span style={s.headerEyebrow}>SYSTEM CONFIGURATION</span>
+          </div>
           <h1 style={s.headerTitle} className="setup-header-title">Set up your interview</h1>
           <p style={s.headerSub}>Configure your session and start practicing in under a minute</p>
         </header>
@@ -262,7 +272,7 @@ export default function Setup() {
 
               {/* Phase preview for Complete Interview */}
               {isComplete && (
-                <div style={s.phasePreview} className="setup-fade">
+                <div style={s.phasePreview} className="setup-phase-preview setup-fade">
                   {[
                     { label: 'Introduction',  qs: 'Q1–Q2', color: '#6366f1' },
                     { label: 'Resume Review', qs: 'Q3–Q4', color: '#8b5cf6' },
@@ -270,7 +280,7 @@ export default function Setup() {
                     { label: 'Behavioural',   qs: 'Q8',    color: '#22c55e' },
                   ].map((p, i) => (
                     <div key={p.label} style={s.phaseRow}>
-                      {i > 0 && <div style={{ ...s.phaseConnector, background: '#1e1e2e' }} />}
+                      {i > 0 && <div style={s.phaseConnector} className="setup-phase-connector" />}
                       <div style={{ ...s.phaseDot, background: p.color, boxShadow: `0 0 8px ${p.color}60` }} />
                       <span style={s.phaseLabel}>{p.label}</span>
                       <span style={s.phaseQs}>{p.qs}</span>
@@ -549,17 +559,25 @@ const s = {
   // Main layout
   main:   { position: 'relative', zIndex: 1, maxWidth: '760px', margin: '0 auto', padding: '5rem 24px 0' },
 
-  header: { marginBottom: '3rem', textAlign: 'center' },
+  header: { marginBottom: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' },
+  headerBadge: {
+    display: 'inline-flex', alignItems: 'center', gap: '8px',
+    background: 'linear-gradient(180deg, rgba(37,99,235,0.12) 0%, rgba(37,99,235,0.04) 100%)',
+    border: '1px solid rgba(37,99,235,0.3)', padding: '5px 14px', borderRadius: '99px',
+    marginBottom: '16px', boxShadow: '0 2px 12px rgba(37,99,235,0.15)',
+  },
+  headerBadgeDot: { width: '6px', height: '6px', borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 8px #3b82f6' },
   headerEyebrow: {
-    display: 'block', fontSize: '11px', fontWeight: '700', letterSpacing: '0.2em',
-    textTransform: 'uppercase', color: 'rgba(228,225,237,0.35)', marginBottom: '12px',
+    fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em',
+    background: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
   },
   headerTitle: {
     fontSize: 'clamp(36px, 6vw, 52px)', fontWeight: '800', lineHeight: 1.1,
-    letterSpacing: '-0.02em', color: '#fff', marginBottom: '12px',
+    letterSpacing: '-0.02em', color: '#fff', marginBottom: '14px',
     fontFamily: "'Geist', sans-serif",
   },
-  headerSub: { color: 'rgba(228,225,237,0.4)', fontSize: '17px' },
+  headerSub: { color: 'rgba(228,225,237,0.4)', fontSize: '16px', maxWidth: '520px' },
 
   cardGlow: {
     position: 'absolute', inset: 0,
@@ -640,12 +658,12 @@ const s = {
 
   // Phase preview
   phasePreview: {
-    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px',
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
     background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-    borderRadius: '12px', padding: '1rem 1.25rem',
+    borderRadius: '12px', padding: '1.25rem',
   },
-  phaseRow:      { display: 'flex', alignItems: 'center', gap: '6px' },
-  phaseConnector:{ width: '20px', height: '2px', borderRadius: '1px', flexShrink: 0 },
+  phaseRow:      { display: 'flex', alignItems: 'center', gap: '8px' },
+  phaseConnector:{ width: '12px', height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '1px', flexShrink: 0 },
   phaseDot:      { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   phaseLabel:    { fontSize: '13px', fontWeight: '500', color: 'rgba(228,225,237,0.7)' },
   phaseQs:       {
