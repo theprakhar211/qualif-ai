@@ -115,6 +115,13 @@ export default function Setup() {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        
+        /* Apply global overflow limits to html/body directly so elements don't drop off the viewport right edge */
+        html, body {
+          max-width: 100% !important;
+          overflow-x: hidden !important;
+        }
+
         .setup-fade { animation: fadeUp 0.5s ease-out forwards; }
         .start-glow { animation: shimmerGlow 3s ease-in-out infinite; }
         .pill-hover:hover { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.15) !important; color: #e2e8f0 !important; }
@@ -126,6 +133,7 @@ export default function Setup() {
         @media (max-width: 640px) {
           .setup-page { 
             padding-bottom: 4rem !important; 
+            width: 100% !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
           }
@@ -153,7 +161,6 @@ export default function Setup() {
           .setup-step-num { font-size: 24px !important; min-width: 36px !important; }
           .setup-section-title { font-size: 18px !important; }
 
-          /* Fixed: Forcing responsive column resizing and absolute width box bounds */
           .setup-type-grid { 
             grid-template-columns: 1fr !important; 
             gap: 0.75rem !important; 
@@ -168,7 +175,6 @@ export default function Setup() {
           .setup-role-btn { font-size: 12px !important; padding: 0.45rem 0.75rem !important; }
           .setup-topic-btn { font-size: 11px !important; padding: 0.4rem 0.65rem !important; }
 
-          /* Fixed: Ensuring difficulty options stack neatly to prevent horizontal line overflow */
           .setup-diff-grid { grid-template-columns: 1fr !important; gap: 0.5rem !important; width: 100% !important; }
           .setup-diff-btn { padding: 1rem 0.75rem !important; width: 100% !important; box-sizing: border-box !important; }
           .setup-diff-label { font-size: 12px !important; }
@@ -182,9 +188,12 @@ export default function Setup() {
         }
       `}</style>
 
-      {/* Background radial glows */}
-      <div style={s.bgGlow1} />
-      <div style={s.bgGlow2} />
+      {/* Background isolated overflow container so absolute glows can't break page width */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+        <div style={s.bgGlow1} />
+        <div style={s.bgGlow2} />
+        <div style={s.cardGlow} />
+      </div>
 
       {/* Navbar */}
       <nav style={s.nav} className="setup-nav">
@@ -211,9 +220,6 @@ export default function Setup() {
           <h1 style={s.headerTitle} className="setup-header-title">Set up your interview</h1>
           <p style={s.headerSub}>Configure your session and start practicing in under a minute</p>
         </header>
-
-        {/* Bleed glow behind card */}
-        <div style={s.cardGlow} />
 
         {/* Main card */}
         <div style={s.card} className="setup-fade setup-card">
@@ -502,13 +508,13 @@ const s = {
   },
 
   bgGlow1: {
-    position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
-    width: '800px', height: '400px', pointerEvents: 'none', zIndex: 0,
+    position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+    width: '800px', height: '400px', pointerEvents: 'none',
     background: 'radial-gradient(ellipse, rgba(37,99,235,0.08) 0%, transparent 70%)',
   },
   bgGlow2: {
-    position: 'fixed', bottom: '-100px', left: '-100px',
-    width: '500px', height: '500px', pointerEvents: 'none', zIndex: 0,
+    position: 'absolute', bottom: '-100px', left: '-100px',
+    width: '500px', height: '500px', pointerEvents: 'none',
     background: 'radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%)',
   },
 
@@ -556,7 +562,7 @@ const s = {
   headerSub: { color: 'rgba(228,225,237,0.4)', fontSize: '17px' },
 
   cardGlow: {
-    position: 'absolute', inset: 0, zIndex: 0,
+    position: 'absolute', inset: 0,
     background: 'rgba(37,99,235,0.04)', filter: 'blur(120px)',
     borderRadius: '50%', transform: 'scaleX(1.5) translateY(80px)',
     pointerEvents: 'none',
