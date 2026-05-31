@@ -35,10 +35,6 @@ a {
   text-decoration: none;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
@@ -101,4 +97,14 @@ a {
 
 body {
   overflow-x: clip;
+}
+
+/* Add this to your global index.css or App.css file */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
