@@ -127,16 +127,15 @@ export default function Landing() {
           border-color: rgba(37,99,235,0.4) !important;
           color: #93c5fd !important;
         }
-        .cta-btn-hover:hover {
-          box-shadow: 0 0 40px rgba(37,99,235,0.4) !important;
-          transform: scale(1.03);
+        .section-sep {
+          width: 100%;
+          height: 1px;
+          background: linear-gradient(to right, transparent, rgba(37,99,235,0.25) 30%, rgba(255,255,255,0.06) 50%, rgba(37,99,235,0.25) 70%, transparent);
+          position: relative; z-index: 1;
         }
-        .cta-btn-hover:active { transform: scale(0.97); }
-        .hero-cta-hover:hover {
-          box-shadow: 0 0 30px rgba(37,99,235,0.35) !important;
-          transform: translateY(-1px);
+        .section-tinted {
+          background: rgba(255,255,255,0.015) !important;
         }
-        .hero-cta-hover:active { transform: scale(0.97); }
       `}</style>
 
       {/* Background layers */}
@@ -219,6 +218,7 @@ export default function Landing() {
       </div>
 
       {/* How it works */}
+      <div className="section-sep" />
       <section id="how" style={styles.section}>
         <div style={styles.sectionInner}>
           <div style={styles.sectionTag}>How it works</div>
@@ -236,7 +236,8 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section style={{ ...styles.section }}>
+      <div className="section-sep" />
+      <section style={{ ...styles.section }} className="section-tinted">
         <div style={styles.sectionInner}>
           <div style={styles.sectionTag}>Features</div>
           <h2 style={styles.sectionTitle}>Everything you need to prep properly</h2>
@@ -253,6 +254,7 @@ export default function Landing() {
       </section>
 
       {/* Tech stack */}
+      <div className="section-sep" />
       <section style={styles.section}>
         <div style={styles.sectionInner}>
           <div style={styles.sectionTag}>Built with</div>
@@ -277,7 +279,8 @@ export default function Landing() {
       </section>
 
       {/* Roles section */}
-      <section style={{ ...styles.section }}>
+      <div className="section-sep" />
+      <section style={{ ...styles.section }} className="section-tinted">
         <div style={styles.sectionInner}>
           <div style={styles.sectionTag}>Roles</div>
           <h2 style={styles.sectionTitle}>Prep for the role you want</h2>
@@ -297,6 +300,7 @@ export default function Landing() {
       </section>
 
       {/* CTA section */}
+      <div className="section-sep" />
       <section style={styles.ctaSection}>
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '600px', height: '600px', background: 'rgba(37,99,235,0.08)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
         <div style={styles.sectionInner}>
