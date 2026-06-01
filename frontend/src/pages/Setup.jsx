@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { interviewAPI, resumeAPI } from '../services/api'
 
 const ROLES = [
@@ -41,10 +41,11 @@ const DIFFICULTY_COLORS = { easy: '#22c55e', medium: '#2563eb', hard: '#ef4444' 
 
 export default function Setup() {
   const navigate = useNavigate()
+  const location = useLocation()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   const [interviewType, setInterviewType] = useState('quick')
-  const [role,          setRole]          = useState('')
+  const [role, setRole] = useState(location.state?.preselectedRole || '')
   const [topics,        setTopics]        = useState([])
   const [difficulty,    setDifficulty]    = useState('medium')
   const [loading,       setLoading]       = useState(false)

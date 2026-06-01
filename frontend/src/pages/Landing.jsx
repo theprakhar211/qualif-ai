@@ -261,15 +261,20 @@ export default function Landing() {
           <h2 style={styles.sectionTitle}>Modern, production-grade stack</h2>
           <div style={styles.techGrid}>
             {[
-              { name: 'React', color: '#61dafb', desc: 'Frontend' },
-              { name: 'FastAPI', color: '#009688', desc: 'Backend' },
-              { name: 'MongoDB', color: '#4db33d', desc: 'Database' },
-              { name: 'Groq', color: '#f55036', desc: 'LLM API' },
-              { name: 'Llama 3', color: '#7c3aed', desc: 'AI Model' },
-              { name: 'Vercel', color: '#ffffff', desc: 'Hosting' },
+              { name: 'React',    color: '#61dafb', desc: 'Frontend',  icon: 'https://cdn.simpleicons.org/react/61dafb' },
+              { name: 'FastAPI',  color: '#009688', desc: 'Backend',   icon: 'https://cdn.simpleicons.org/fastapi/009688' },
+              { name: 'MongoDB',  color: '#4db33d', desc: 'Database',  icon: 'https://cdn.simpleicons.org/mongodb/4db33d' },
+              { name: 'Groq',     color: '#f55036', desc: 'LLM API',   icon: 'https://cdn.simpleicons.org/groq/f55036' },
+              { name: 'Llama 3',  color: '#7c3aed', desc: 'AI Model',  icon: 'https://cdn.simpleicons.org/meta/7c3aed' },
+              { name: 'Vercel',   color: '#ffffff', desc: 'Hosting',   icon: 'https://cdn.simpleicons.org/vercel/ffffff' },
             ].map(t => (
               <div key={t.name} style={styles.techCard}>
-                <div style={{ ...styles.techDot, background: t.color }} />
+                <img
+                  src={t.icon}
+                  alt={t.name}
+                  style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
+                  onError={e => { e.target.style.display = 'none' }}
+                />
                 <div style={styles.techName}>{t.name}</div>
                 <div style={styles.techDesc}>{t.desc}</div>
               </div>
@@ -288,7 +293,7 @@ export default function Landing() {
             {ROLES.map(r => (
               <button
                 key={r}
-                onClick={handleCTA}
+                onClick={() => navigate('/app', { state: { preselectedRole: r } })}
                 style={styles.roleChip}
                 className="role-chip-hover"
               >
