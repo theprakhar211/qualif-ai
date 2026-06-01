@@ -195,7 +195,7 @@ export default function Login() {
             >
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <span style={s.spinner} /> Signing in...
+                  <span style={s.spinner} className="login-spinner" /> Signing in...
                 </span>
               ) : 'Sign in'}
             </button>
@@ -334,8 +334,7 @@ const s = {
     width: '14px', height: '14px',
     border: '2px solid rgba(255,255,255,0.3)',
     borderTop: '2px solid #fff',
-    borderRadius: '50%', display: 'inline-block',
-    animation: 'spin 0.8s linear infinite',
+    borderRadius: '50%', display: 'inline-block'
   },
 
   footerGroup: { textAlign: 'center', marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' },
