@@ -92,6 +92,13 @@ export default function Login() {
           0%   { transform: scale(1)   translate(0, 0);       opacity: 0.3; }
           100% { transform: scale(1.2) translate(-40px,30px); opacity: 0.5; }
         }
+        @keyframes spin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .login-spinner {
+          animation: spin 0.8s linear infinite !important;
+        }
 
         /* Mobile */
         @media (max-width: 768px) {
