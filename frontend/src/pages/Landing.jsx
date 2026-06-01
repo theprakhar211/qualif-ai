@@ -264,17 +264,15 @@ export default function Landing() {
               { name: 'React',    color: '#61dafb', desc: 'Frontend',  icon: 'https://cdn.simpleicons.org/react/61dafb' },
               { name: 'FastAPI',  color: '#009688', desc: 'Backend',   icon: 'https://cdn.simpleicons.org/fastapi/009688' },
               { name: 'MongoDB',  color: '#4db33d', desc: 'Database',  icon: 'https://cdn.simpleicons.org/mongodb/4db33d' },
-              { name: 'Groq',     color: '#f55036', desc: 'LLM API',   icon: 'https://cdn.simpleicons.org/groq/f55036' },
-              { name: 'Llama 3',  color: '#7c3aed', desc: 'AI Model',  icon: 'https://cdn.simpleicons.org/meta/7c3aed' },
+              { name: 'Groq',     color: '#f55036', desc: 'LLM API',   emoji: '⚡' },
+              { name: 'Llama 3',  color: '#7c3aed', desc: 'AI Model',  emoji: '🦙' },
               { name: 'Vercel',   color: '#ffffff', desc: 'Hosting',   icon: 'https://cdn.simpleicons.org/vercel/ffffff' },
             ].map(t => (
               <div key={t.name} style={styles.techCard}>
-                <img
-                  src={t.icon}
-                  alt={t.name}
-                  style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
-                  onError={e => { e.target.style.display = 'none' }}
-                />
+                {t.emoji
+                  ? <span style={{ fontSize: '20px', flexShrink: 0 }}>{t.emoji}</span>
+                  : <img src={t.icon} alt={t.name} style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }} onError={e => { e.target.style.display = 'none' }} />
+                }
                 <div style={styles.techName}>{t.name}</div>
                 <div style={styles.techDesc}>{t.desc}</div>
               </div>
