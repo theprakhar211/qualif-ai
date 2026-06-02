@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 import secrets
 from models.share import ShareCardCreate, ShareCardResponse
-from database import db
+from database import db_instance
 
 router = APIRouter(tags=["share"])
 
@@ -14,7 +14,7 @@ async def create_share_card(data: ShareCardCreate):
     doc = data.model_dump()
     doc["share_id"] = share_id
     doc["created_at"] = datetime.now(timezone.utc)
-    await db["share_cards"].insert_one(doc)
+    await db_instance.share_cards_col.insert_one(doc)
     return ShareCardResponse(
         share_id=share_id,
         url=f"https://qualif-smart-ai.vercel.app/share/{share_id}"
@@ -23,7 +23,7 @@ async def create_share_card(data: ShareCardCreate):
 
 @router.get("/{share_id}")
 async def get_share_card(share_id: str):
-    doc = await db["share_cards"].find_one(
+    doc = await db_instance.share_cards_col.find_one(
         {"share_id": share_id},
         {"_id": 0}
     )

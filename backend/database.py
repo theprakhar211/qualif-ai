@@ -26,6 +26,10 @@ class Database:
     def ideal_answers_col(self):
         return self.client[settings.DB_NAME]["ideal_answers"]
 
+    @property
+    def share_cards_col(self):
+        return self.client[settings.DB_NAME]["share_cards"]
+
 
 db_instance = Database()
 
@@ -42,6 +46,8 @@ async def connect_db():
     # New indexes for skill graph + ideal answer cache
     await db_instance.ideal_answers_col.create_index("fingerprint", unique=True)
     await db_instance.ideal_answers_col.create_index("question_text")
+    await db_instance.share_cards_col.create_index("share_id", unique=True)
+    await db_instance.share_cards_col.create_index("created_at", expireAfterSeconds=2592000)
 
     logger.success("MongoDB connected.")
 

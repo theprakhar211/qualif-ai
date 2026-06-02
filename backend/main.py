@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from loguru import logger
-from database import connect_db, close_db, db
+from database import connect_db, close_db
 from routers import auth, interview, evaluation, dashboard, tts, resume
 from routers.share import router as share_router
 import os
@@ -11,8 +11,6 @@ import os
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
-    await db["share_cards"].create_index("share_id", unique=True)
-    await db["share_cards"].create_index("created_at", expireAfterSeconds=2592000)
     yield
     await close_db()
 
