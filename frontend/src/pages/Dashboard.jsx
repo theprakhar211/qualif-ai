@@ -505,7 +505,7 @@ function ScoreRing({ score, size = 80 }) {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 const DASHBOARD_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Geist:wght=600;700;800;900&family=Inter:wght=400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap');
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   .spin-loader { animation: spin 0.9s linear infinite !important; }
