@@ -7,14 +7,12 @@ Run with: pytest tests/ -v
 No external dependencies — pure function tests only.
 """
 
-import pytest
+from services.question_engine import _is_empty_answer_local, _NON_ANSWER_EXACT
 import sys
 import os
 
 # Ensure backend root is on path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from services.question_engine import _is_empty_answer_local, _NON_ANSWER_EXACT
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -104,7 +102,8 @@ class TestIsEmptyAnswerLocal:
 
     def test_short_but_valid_answer(self):
         # 6 words exactly — boundary case, no substance signal needed
-        assert _is_empty_answer_local("arrays store elements in contiguous memory") is False
+        assert _is_empty_answer_local(
+            "arrays store elements in contiguous memory") is False
 
     def test_behavioural_answer(self):
         answer = (
@@ -116,11 +115,13 @@ class TestIsEmptyAnswerLocal:
     def test_vague_but_long_enough(self):
         # Vague but has enough words — should NOT be caught by local check
         # (LLM check handles this case)
-        assert _is_empty_answer_local("I think it depends on the situation and context") is False
+        assert _is_empty_answer_local(
+            "I think it depends on the situation and context") is False
 
     def test_answer_starting_with_no(self):
         # "no" as standalone is caught, but "no, " + content is not
-        assert _is_empty_answer_local("no, a queue uses FIFO not LIFO") is False
+        assert _is_empty_answer_local(
+            "no, a queue uses FIFO not LIFO") is False
 
     # ── Edge cases ──────────────────────────────────────────────────────────
 
@@ -147,7 +148,7 @@ class TestIsEmptyAnswerLocal:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Import the function directly — it's a module-level helper, not a route
-from routers.interview import _compute_communication_score
+from routers.interview import _compute_communication_score  # noqa: E402
 
 
 class TestComputeCommunicationScore:
@@ -173,10 +174,12 @@ class TestComputeCommunicationScore:
         assert _compute_communication_score(self._answer(wpm=0)) is None
 
     def test_returns_none_for_low_word_count(self):
-        assert _compute_communication_score(self._answer(word_count=19)) is None
+        assert _compute_communication_score(
+            self._answer(word_count=19)) is None
 
     def test_returns_none_for_word_count_exactly_19(self):
-        assert _compute_communication_score(self._answer(word_count=19)) is None
+        assert _compute_communication_score(
+            self._answer(word_count=19)) is None
 
     def test_returns_float_for_word_count_20(self):
         result = _compute_communication_score(self._answer(word_count=20))
@@ -187,9 +190,12 @@ class TestComputeCommunicationScore:
 
     def test_score_always_between_0_and_100(self):
         extreme_cases = [
-            self._answer(wpm=30, ttr=0.1, hedging=1.0, fillers=["um"]*20, avg_sentence_len=2),
-            self._answer(wpm=250, ttr=0.9, hedging=0.0, fillers=[], avg_sentence_len=25),
-            self._answer(wpm=140, ttr=0.6, hedging=0.1, fillers=[], avg_sentence_len=12),
+            self._answer(wpm=30, ttr=0.1, hedging=1.0, fillers=[
+                         "um"]*20, avg_sentence_len=2),
+            self._answer(wpm=250, ttr=0.9, hedging=0.0,
+                         fillers=[], avg_sentence_len=25),
+            self._answer(wpm=140, ttr=0.6, hedging=0.1,
+                         fillers=[], avg_sentence_len=12),
         ]
         for ans in extreme_cases:
             score = _compute_communication_score(ans)
@@ -205,23 +211,23 @@ class TestComputeCommunicationScore:
         assert base > slow
 
     def test_very_slow_wpm_penalised(self):
-        base   = _compute_communication_score(self._answer(wpm=140))
-        slow   = _compute_communication_score(self._answer(wpm=70))
+        base = _compute_communication_score(self._answer(wpm=140))
+        slow = _compute_communication_score(self._answer(wpm=70))
         assert base - slow >= 15
 
     def test_slow_wpm_small_penalty(self):
-        ideal  = _compute_communication_score(self._answer(wpm=140))
-        slow   = _compute_communication_score(self._answer(wpm=95))
+        ideal = _compute_communication_score(self._answer(wpm=140))
+        slow = _compute_communication_score(self._answer(wpm=95))
         assert ideal - slow >= 5
 
     def test_very_fast_wpm_penalised(self):
-        ideal  = _compute_communication_score(self._answer(wpm=140))
-        fast   = _compute_communication_score(self._answer(wpm=210))
+        ideal = _compute_communication_score(self._answer(wpm=140))
+        fast = _compute_communication_score(self._answer(wpm=210))
         assert ideal - fast >= 10
 
     def test_slightly_fast_wpm_small_penalty(self):
-        ideal  = _compute_communication_score(self._answer(wpm=140))
-        fast   = _compute_communication_score(self._answer(wpm=185))
+        ideal = _compute_communication_score(self._answer(wpm=140))
+        fast = _compute_communication_score(self._answer(wpm=185))
         assert fast >= ideal  # 180-200 is minor — no penalty at this threshold
 
     # ── TTR scoring ─────────────────────────────────────────────────────────
@@ -230,7 +236,7 @@ class TestComputeCommunicationScore:
         # ttr bonus (+5) is capped at 100 when base is already 100
         # Verify bonus shows when other penalties exist
         rich = _compute_communication_score(self._answer(ttr=0.70, wpm=95))
-        avg  = _compute_communication_score(self._answer(ttr=0.55, wpm=95))
+        avg = _compute_communication_score(self._answer(ttr=0.55, wpm=95))
         assert rich > avg
 
     def test_low_ttr_penalised(self):
@@ -239,7 +245,7 @@ class TestComputeCommunicationScore:
         assert rich - poor >= 15
 
     def test_medium_ttr_moderate_penalty(self):
-        rich   = _compute_communication_score(self._answer(ttr=0.70))
+        rich = _compute_communication_score(self._answer(ttr=0.70))
         medium = _compute_communication_score(self._answer(ttr=0.45))
         assert rich - medium >= 5
 
@@ -247,58 +253,71 @@ class TestComputeCommunicationScore:
 
     def test_no_hedging_no_penalty(self):
         confident = _compute_communication_score(self._answer(hedging=0.0))
-        hedgy     = _compute_communication_score(self._answer(hedging=0.6))
+        hedgy = _compute_communication_score(self._answer(hedging=0.6))
         assert confident > hedgy
 
     def test_high_hedging_large_penalty(self):
         confident = _compute_communication_score(self._answer(hedging=0.0))
-        hedgy     = _compute_communication_score(self._answer(hedging=0.6))
+        hedgy = _compute_communication_score(self._answer(hedging=0.6))
         assert confident - hedgy >= 15
 
     def test_medium_hedging_moderate_penalty(self):
         confident = _compute_communication_score(self._answer(hedging=0.0))
-        medium    = _compute_communication_score(self._answer(hedging=0.35))
+        medium = _compute_communication_score(self._answer(hedging=0.35))
         assert confident - medium >= 5
 
     def test_slight_hedging_small_penalty(self):
         # hedging=0.2 incurs -5 but sent_len bonus can offset it
         # test with no sentence bonus to isolate hedging penalty
-        confident = _compute_communication_score(self._answer(hedging=0.0, avg_sentence_len=7.0))
-        slight    = _compute_communication_score(self._answer(hedging=0.2, avg_sentence_len=7.0))
+        confident = _compute_communication_score(
+            self._answer(hedging=0.0, avg_sentence_len=7.0))
+        slight = _compute_communication_score(
+            self._answer(hedging=0.2, avg_sentence_len=7.0))
         assert confident - slight >= 5
 
     # ── Filler word scoring ──────────────────────────────────────────────────
 
     def test_no_fillers_no_penalty(self):
-        clean  = _compute_communication_score(self._answer(fillers=[], word_count=60))
-        filled = _compute_communication_score(self._answer(fillers=["um"]*15, word_count=60))
+        clean = _compute_communication_score(
+            self._answer(fillers=[], word_count=60))
+        filled = _compute_communication_score(
+            self._answer(fillers=["um"]*15, word_count=60))
         assert clean > filled
 
     def test_many_fillers_large_penalty(self):
-        clean  = _compute_communication_score(self._answer(fillers=[], word_count=60))
-        filled = _compute_communication_score(self._answer(fillers=["um"]*15, word_count=60))
+        clean = _compute_communication_score(
+            self._answer(fillers=[], word_count=60))
+        filled = _compute_communication_score(
+            self._answer(fillers=["um"]*15, word_count=60))
         assert clean - filled >= 10
 
     def test_moderate_fillers_small_penalty(self):
-        clean    = _compute_communication_score(self._answer(fillers=[], word_count=60))
-        moderate = _compute_communication_score(self._answer(fillers=["um"]*7, word_count=60))
+        clean = _compute_communication_score(
+            self._answer(fillers=[], word_count=60))
+        moderate = _compute_communication_score(
+            self._answer(fillers=["um"]*7, word_count=60))
         assert clean - moderate >= 2
 
     # ── Sentence length scoring ──────────────────────────────────────────────
 
     def test_good_sentence_length_bonus(self):
-        good  = _compute_communication_score(self._answer(avg_sentence_len=12.0))
-        short = _compute_communication_score(self._answer(avg_sentence_len=3.0))
+        good = _compute_communication_score(
+            self._answer(avg_sentence_len=12.0))
+        short = _compute_communication_score(
+            self._answer(avg_sentence_len=3.0))
         assert good > short
 
     def test_very_short_sentences_penalised(self):
-        good  = _compute_communication_score(self._answer(avg_sentence_len=12.0))
-        short = _compute_communication_score(self._answer(avg_sentence_len=3.0))
+        good = _compute_communication_score(
+            self._answer(avg_sentence_len=12.0))
+        short = _compute_communication_score(
+            self._answer(avg_sentence_len=3.0))
         assert good - short >= 10  # -10 penalty for short sentences
 
     def test_sentence_length_at_boundary(self):
         # avg_sentence_len=5 is exactly the threshold — no penalty
-        result = _compute_communication_score(self._answer(avg_sentence_len=5.0))
+        result = _compute_communication_score(
+            self._answer(avg_sentence_len=5.0))
         assert result is not None
 
     # ── Perfect answer ───────────────────────────────────────────────────────
@@ -306,7 +325,8 @@ class TestComputeCommunicationScore:
     def test_perfect_inputs_give_high_score(self):
         # All signals ideal — score is capped at 100 even with bonuses
         perfect = _compute_communication_score(
-            self._answer(wpm=140, ttr=0.70, hedging=0.0, fillers=[], avg_sentence_len=12.0)
+            self._answer(wpm=140, ttr=0.70, hedging=0.0,
+                         fillers=[], avg_sentence_len=12.0)
         )
         assert perfect == 100.0
 

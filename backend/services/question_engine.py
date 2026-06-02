@@ -1,3 +1,4 @@
+from typing import Optional
 from services.groq_service import ask_groq
 from services.resume_parser import build_resume_context
 from database import db_instance
@@ -73,14 +74,14 @@ async def should_generate_followup(
     """
     # Option A — instant check
     if _is_empty_answer_local(answer):
-        logger.info(f"Follow-up skipped: empty/non-answer detected locally")
+        logger.info("Follow-up skipped: empty/non-answer detected locally")
         return False
 
     # Option B — LLM check
     substantive = await _is_substantive_answer_llm(question, answer)
     if not substantive:
         logger.info(
-            f"Follow-up skipped: LLM classified answer as non-substantive")
+            "Follow-up skipped: LLM classified answer as non-substantive")
         return False
 
     return True
@@ -129,11 +130,12 @@ Reply with ONLY the question. Keep it conversational and open-ended."""
 
 async def generate_resume_question(
     role: str,
-    resume_data: dict,
-    asked_questions: list = []
+    resume_data: Optional[dict] = None,
+    asked_questions: Optional[list] = None
 ) -> str:
     """Generate resume-specific questions (Q3-Q4 of complete interview)."""
 
+    asked_questions = asked_questions or []
     if not resume_data or not any(resume_data.values()):
         return await generate_behavioural_question(asked_questions)
 
@@ -161,7 +163,7 @@ Rules:
 Reply with ONLY the question."""
 
     result = await ask_groq(prompt, SYSTEM_PROMPT, temperature=0.6)
-    return result or f"Walk me through the project or role you're most proud of in your background."
+    return result or "Walk me through the project or role you're most proud of in your background."
 
 
 async def generate_behavioural_question(
@@ -178,12 +180,14 @@ async def generate_question(
     role: str,
     topic: str,
     difficulty: str,
-    asked_questions: list = [],
-    resume_data: dict = None,
-    seen_question_hashes: list = [],
+    asked_questions: Optional[list] = None,
+    resume_data: Optional[dict] = None,
+    seen_question_hashes: Optional[list] = None,
 ) -> str:
     """Generate technical questions — core of both Quick Practice and Complete Interview."""
 
+    asked_questions = asked_questions or []
+    seen_question_hashes = seen_question_hashes or []
     avoid = ""
     if asked_questions:
         avoid = "\nDo NOT ask any of these already-asked questions:\n" + \
@@ -227,11 +231,11 @@ async def generate_question_adaptive(
     role: str,
     topic: str,
     difficulty: str,
-    asked_questions: list = [],
-    resume_data: dict = None,
-    user_id: str = None,
-    session_skills_covered: list = None,
-    seen_question_hashes: list = [],
+    asked_questions: Optional[list] = None,
+    resume_data: Optional[dict] = None,
+    user_id: Optional[str] = None,
+    session_skills_covered: Optional[list] = None,
+    seen_question_hashes: Optional[list] = None,
 ) -> tuple[str, str]:
     """
     Adaptive wrapper around generate_question().
@@ -242,7 +246,7 @@ async def generate_question_adaptive(
 
     if user_id and session_skills_covered is not None:
         try:
-            from services.skill_graph import load_skill_graph, infer_skill
+            from services.skill_graph import load_skill_graph
             graph = await load_skill_graph(db_instance, user_id)
             target_skill = graph.get_target_skill(
                 attempted_this_session=session_skills_covered)
@@ -280,15 +284,16 @@ async def generate_followup(
     previous_question: str,
     previous_answer: str,
     difficulty: str,
-    resume_data: dict = None,
-    topics: list = None,
-    seen_question_hashes: list = [],
+    resume_data: Optional[dict] = None,
+    topics: Optional[list] = None,
+    seen_question_hashes: Optional[list] = None,
 ) -> tuple[str, bool]:
     """
     Generate a follow-up if the previous answer was substantive.
     Returns (question_text, was_followup).
     If answer wasn't substantive, returns a fresh question instead.
     """
+    seen_question_hashes = seen_question_hashes or []
     # Check answer quality before generating follow-up
     if not await should_generate_followup(previous_question, previous_answer):
         # Answer wasn't real — generate a fresh question on a new topic
@@ -337,8 +342,9 @@ Reply with ONLY the follow-up question."""
 async def get_fallback_question(
     role: str,
     difficulty: str,
-    asked_questions: list = []
+    asked_questions: Optional[list] = None
 ) -> str:
+    asked_questions = asked_questions or []
     query = {"role": role, "difficulty": difficulty}
     cursor = db_instance.questions_col.find(query)
     questions = await cursor.to_list(length=50)

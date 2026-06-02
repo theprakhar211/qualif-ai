@@ -7,7 +7,7 @@ import random
 from models.session import SessionCreate, SessionStatus
 from services.dependencies import get_current_user
 from services.question_engine import (
-    generate_question, generate_question_adaptive, generate_followup,
+    generate_question_adaptive, generate_followup,
     generate_intro_question, generate_resume_question,
     generate_behavioural_question, question_hash
 )

@@ -47,7 +47,7 @@ def _sanitise_answer(text: str) -> str:
 async def ask_groq(
     prompt: str,
     system: str = "",
-    model: str = None,
+    model: str | None = None,
     temperature: float = 0.7,
     max_tokens: int = 1024,
 ) -> str | None:
@@ -65,7 +65,8 @@ async def ask_groq(
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        return content.strip() if content else None
 
     except Exception as e:
         logger.error(f"Groq error ({model}): {e}")

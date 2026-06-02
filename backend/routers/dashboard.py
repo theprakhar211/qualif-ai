@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from bson import ObjectId
 from loguru import logger
 from services.dependencies import get_current_user
-from database import db_instance, serialize_doc
+from database import db_instance
 
 router = APIRouter()
 

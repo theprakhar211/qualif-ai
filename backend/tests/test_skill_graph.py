@@ -5,7 +5,6 @@ Run with: pytest tests/ -v
 No external dependencies — all MongoDB functions are excluded from unit tests.
 """
 
-import pytest
 from services.skill_graph import (
     infer_skill,
     SkillNode,

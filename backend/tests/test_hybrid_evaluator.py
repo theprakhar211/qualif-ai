@@ -5,7 +5,6 @@ Run with: pytest tests/ -v
 No external dependencies — pure function tests only.
 """
 
-import pytest
 from services.hybrid_evaluator import (
     PhaseType,
     DeterministicScore,

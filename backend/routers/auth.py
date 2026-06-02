@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
-from bson import ObjectId
 from loguru import logger
 
 from models.user import UserRegister, UserLogin, UserResponse

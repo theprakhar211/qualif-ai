@@ -4,7 +4,6 @@ Skill graph with mastery tracking and adaptive targeting logic.
 """
 
 from __future__ import annotations
-import math
 from dataclasses import dataclass, field
 from typing import Optional
 from datetime import datetime, timezone

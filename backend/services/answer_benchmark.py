@@ -69,7 +69,7 @@ def question_fingerprint(question_text: str, role: str, difficulty: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
-def _parse_json_response(raw: str) -> dict | None:
+def _parse_json_response(raw: str | None) -> dict | None:
     """Safely parse a JSON response, stripping markdown fences if present."""
     if not raw:
         return None

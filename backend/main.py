@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from loguru import logger
 from database import connect_db, close_db
 from routers import auth, interview, evaluation, dashboard, tts, resume
 from routers.share import router as share_router

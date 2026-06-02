@@ -133,7 +133,12 @@ def extract_keywords_for_question(question_text: str, topic: str | None = None) 
 
     # Deduplicate while preserving order
     seen: set[str] = set()
-    return [k for k in required if not (k in seen or seen.add(k))]
+    deduped: list[str] = []
+    for k in required:
+        if k not in seen:
+            seen.add(k)
+            deduped.append(k)
+    return deduped
 
 
 def score_keywords(answer: str, required_keywords: list[str]) -> tuple[float, list[str], list[str]]:
