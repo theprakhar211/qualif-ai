@@ -70,4 +70,20 @@ export const resumeAPI = {
   getmine: () => api.get('/resume/me'),
 }
 
+export const createShare = async (shareData) => {
+  const res = await fetch(`${API_URL}/share`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(shareData),
+  });
+  if (!res.ok) throw new Error("Failed to create share link");
+  return res.json();
+};
+
+export const getShare = async (shareId) => {
+  const res = await fetch(`${API_URL}/share/${shareId}`);
+  if (!res.ok) throw new Error("Share not found");
+  return res.json();
+};
+
 export default api

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { interviewAPI } from '../services/api'
+import { interviewAPI, createShare } from '../services/api'
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis'
 
@@ -643,6 +643,9 @@ export default function Interview() {
   const [evalResults, setEvalResults] = useState(null)
   const [evalError,   setEvalError]   = useState(false)
 
+  const [shareUrl, setShareUrl] = useState(null);
+  const [sharing, setSharing] = useState(false);
+
   const timerRef           = useRef(null)
   const startTimeRef       = useRef(null)
   const hasAskedRef        = useRef(false)
@@ -850,6 +853,58 @@ export default function Interview() {
   const progressPct = ((qNumber - 1) / MAX_QUESTIONS) * 100
 
   /* ─────────────────────────────────────────
+      Share component
+  ───────────────────────────────────────── */
+  const getGrade = (score) => {
+    if (score >= 90) return 'A+'
+    if (score >= 85) return 'A'
+    if (score >= 80) return 'A-'
+    if (score >= 75) return 'B+'
+    if (score >= 70) return 'B'
+    if (score >= 65) return 'B-'
+    if (score >= 60) return 'C+'
+    if (score >= 55) return 'C'
+    if (score >= 50) return 'C-'
+    if (score >= 40) return 'D'
+    return 'F'
+  }
+
+  const deriveTopicScores = (answers) => {
+    if (!answers?.length) return []
+    const map = {}
+    answers.forEach(a => {
+      const topic = a.topic || a.phase || 'General'
+      if (!map[topic]) map[topic] = { total: 0, count: 0 }
+      map[topic].total += a.quick_score ?? 0
+      map[topic].count += 1
+    })
+    return Object.entries(map).map(([topic, { total, count }]) => ({
+      topic,
+      score: Math.round(total / count),
+    }))
+  }
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const result = await createShare({
+        session_id: sessionId,
+        overall_score: evalResults.overall_score,
+        grade: getGrade(evalResults.overall_score),
+        role: role,
+        difficulty: difficulty,
+        interview_type: interviewType,
+        topic_scores: deriveTopicScores(evalResults.answers),
+        total_questions: evalResults.answers?.length ?? 0,
+      });
+      setShareUrl(result.url);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSharing(false);
+    }
+  };
+  /* ─────────────────────────────────────────
      Ready screen
   ───────────────────────────────────────── */
   if (state === STATES.READY) {
@@ -950,6 +1005,26 @@ export default function Interview() {
                 View full results
                 <span className="material-symbols-outlined">arrow_forward</span>
               </button>
+              <button onClick={handleShare} disabled={sharing} style={{
+                background: "rgba(37,99,235,0.15)", color: "#93c5fd",
+                border: "1px solid rgba(37,99,235,0.3)", borderRadius: 9999,
+                padding: "10px 24px", fontSize: 14, fontWeight: 500, cursor: "pointer", marginTop: "1rem"
+              }}>
+                {sharing ? "Creating link..." : "Share result"}
+              </button>
+
+              {shareUrl && (
+                <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+                  <input readOnly value={shareUrl} style={{
+                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 8, padding: "8px 12px", color: "#94a3b8", fontSize: 12, width: 280
+                  }} />
+                  <button onClick={() => { navigator.clipboard.writeText(shareUrl); }} style={{
+                    background: "#2563eb", color: "#fff", border: "none",
+                    borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer"
+                  }}>Copy</button>
+                </div>
+              )}
             </div>
           )}
         </div>

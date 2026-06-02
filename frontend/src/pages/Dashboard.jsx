@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { dashboardAPI } from '../services/api'
+import { dashboardAPI, createShare } from '../services/api'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, BarChart, Bar, Cell
@@ -549,6 +549,7 @@ export default function Dashboard() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [confirmReset,  setConfirmReset]  = useState(false)
   const [resetting,     setResetting]     = useState(false)
+  const [shareStates,   setShareStates]   = useState({}) // { [sessionId]: { sharing, url, copied } }
 
   useEffect(() => {
     const load = async () => {
@@ -601,6 +602,49 @@ export default function Dashboard() {
   }
   const scoreColor = (sc) => sc >= 70 ? '#22c55e' : sc >= 40 ? '#eab308' : '#ef4444'
   const diffColor  = (d)  => d === 'easy' ? '#22c55e' : d === 'hard' ? '#ef4444' : '#eab308'
+
+  const getGrade = (score) => {
+    if (score >= 90) return 'A+'
+    if (score >= 85) return 'A'
+    if (score >= 80) return 'A-'
+    if (score >= 75) return 'B+'
+    if (score >= 70) return 'B'
+    if (score >= 65) return 'B-'
+    if (score >= 60) return 'C+'
+    if (score >= 55) return 'C'
+    if (score >= 50) return 'C-'
+    if (score >= 40) return 'D'
+    return 'F'
+  }
+
+  const handleSessionShare = async (e, session) => {
+    e.stopPropagation() // prevent triggering loadDetail
+    const id = session.id
+    setShareStates(prev => ({ ...prev, [id]: { sharing: true, url: null, copied: false } }))
+    try {
+      const topicScores = (session.topics || []).map(t => ({ topic: t, score: session.avg_score }))
+      const result = await createShare({
+        session_id: id,
+        overall_score: session.avg_score,
+        grade: getGrade(session.avg_score),
+        role: session.role,
+        difficulty: session.difficulty,
+        interview_type: session.interview_type || 'quick',
+        topic_scores: topicScores,
+        total_questions: session.answer_count ?? 0,
+      })
+      setShareStates(prev => ({ ...prev, [id]: { sharing: false, url: result.url, copied: false } }))
+    } catch {
+      setShareStates(prev => ({ ...prev, [id]: { sharing: false, url: null, copied: false } }))
+    }
+  }
+
+  const handleCopyShareUrl = (e, id, url) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(url)
+    setShareStates(prev => ({ ...prev, [id]: { ...prev[id], copied: true } }))
+    setTimeout(() => setShareStates(prev => ({ ...prev, [id]: { ...prev[id], copied: false } })), 2000)
+  }
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
@@ -895,7 +939,58 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div style={s.sessionFooter}>
-                      <span style={{ color: '#444', fontSize: '12px' }}>Click to view full breakdown →</span>
+                      {(() => {
+                        const st = shareStates[session.id]
+                        if (st?.url) {
+                          return (
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                              <input
+                                readOnly
+                                value={st.url}
+                                style={{
+                                  flex: 1, minWidth: 0,
+                                  background: 'rgba(255,255,255,0.04)',
+                                  border: '1px solid rgba(255,255,255,0.08)',
+                                  borderRadius: '6px', padding: '4px 8px',
+                                  color: '#94a3b8', fontSize: '11px',
+                                }}
+                              />
+                              <button
+                                onClick={(e) => handleCopyShareUrl(e, session.id, st.url)}
+                                style={{
+                                  background: st.copied ? 'rgba(34,197,94,0.15)' : '#2563eb',
+                                  color: st.copied ? '#22c55e' : '#fff',
+                                  border: 'none', borderRadius: '6px',
+                                  padding: '4px 10px', fontSize: '11px',
+                                  fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {st.copied ? '✓ Copied' : 'Copy'}
+                              </button>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#444', fontSize: '12px' }}>Click to view full breakdown →</span>
+                            <button
+                              onClick={(e) => handleSessionShare(e, session)}
+                              disabled={st?.sharing}
+                              style={{
+                                background: 'rgba(37,99,235,0.12)',
+                                color: '#93c5fd',
+                                border: '1px solid rgba(37,99,235,0.25)',
+                                borderRadius: '9999px',
+                                padding: '3px 12px', fontSize: '11px',
+                                fontWeight: '600', cursor: 'pointer',
+                                opacity: st?.sharing ? 0.6 : 1,
+                              }}
+                            >
+                              {st?.sharing ? '...' : '↗ Share'}
+                            </button>
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 ))}

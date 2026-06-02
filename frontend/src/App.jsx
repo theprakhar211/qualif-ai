@@ -7,6 +7,7 @@ import Interview from './pages/Interview'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ShareCard from "./pages/ShareCard";
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="/app"       element={<PrivateRoute><Setup /></PrivateRoute>} />
           <Route path="/interview/:sessionId" element={<PrivateRoute><Interview /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/share/:shareId" element={<ShareCard />} />
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
