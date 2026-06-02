@@ -633,7 +633,7 @@ export default function Dashboard() {
         topic_scores: topicScores,
         total_questions: session.answer_count ?? 0,
       })
-      setShareStates(prev => ({ ...prev, [id]: { sharing: false, url: result.url, copied: false } }))
+      setShareStates(prev => ({ ...prev, [id]: { sharing: false, url: result.data.url, copied: false } }))
     } catch {
       setShareStates(prev => ({ ...prev, [id]: { sharing: false, url: null, copied: false } }))
     }

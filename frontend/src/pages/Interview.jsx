@@ -897,7 +897,7 @@ export default function Interview() {
         topic_scores: deriveTopicScores(evalResults.answers),
         total_questions: evalResults.answers?.length ?? 0,
       });
-      setShareUrl(result.url);
+      setShareUrl(result.data.url);
     } catch (e) {
       console.error(e);
     } finally {
