@@ -277,12 +277,12 @@ const STITCH_STYLES = `
   }
   .question-text {
     font-family: 'Geist', sans-serif;
-    font-size: 26px;
+    font-size: 19px;
     font-weight: 700;
     line-height: 1.3;
     color: var(--on-surface);
   }
-  @media (min-width: 640px) { .question-text { font-size: 30px; } }
+  @media (min-width: 640px) { .question-text { font-size: 22px; } }
 
   /* ── State indicator row ── */
   .state-row { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
@@ -571,50 +571,6 @@ const STITCH_STYLES = `
     user-select: none;
   }
 
-  /* ── Footer ── */
-  .site-footer {
-    position: relative;
-    z-index: 1;
-    border-top: 1px solid rgba(255,255,255,0.05);
-    background: var(--surface-container-lowest);
-    padding: 40px 24px;
-    margin-top: 80px;
-  }
-  .footer-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-  }
-  @media (min-width: 640px) {
-    .footer-inner { flex-direction: row; justify-content: space-between; }
-  }
-  .footer-brand {
-    font-family: 'Geist', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--on-surface);
-  }
-  .footer-copy {
-    font-family: 'Geist', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--outline);
-  }
-  .footer-links { display: flex; gap: 28px; }
-  .footer-links a {
-    font-family: 'Geist', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--outline);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-  .footer-links a:hover { color: var(--on-surface); }
 `
 
 /* ─────────────────────────────────────────────
@@ -690,6 +646,8 @@ export default function Interview() {
   const startTimeRef       = useRef(null)
   const hasAskedRef        = useRef(false)
   const pendingQuestionRef = useRef(null)
+  const orb1Ref            = useRef(null)
+  const orb2Ref            = useRef(null)
 
   const {
     transcript, interimTranscript,
@@ -777,6 +735,24 @@ export default function Interview() {
     if (inputMode === 'text' && isListening) stopListening()
     else if (inputMode === 'voice' && !isListening) setTimeout(() => startListening(), 300)
   }, [inputMode, state, isListening, startListening, stopListening])
+
+  /* ── Orb parallax on mouse move ── */
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const centerX = window.innerWidth / 2
+      const centerY = window.innerHeight / 2
+      if (orb1Ref.current) {
+        const f = 20
+        orb1Ref.current.style.transform = `translate(${(e.clientX - centerX) / f}px, ${(e.clientY - centerY) / f}px)`
+      }
+      if (orb2Ref.current) {
+        const f = 40
+        orb2Ref.current.style.transform = `translate(${(e.clientX - centerX) / f}px, ${(e.clientY - centerY) / f}px)`
+      }
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
 
   /* ── submit ── */
   const handleStopAndSubmit = async (mode = inputMode, typed = typedAnswer) => {
@@ -880,11 +856,8 @@ export default function Interview() {
     return (
       <>
         <style>{STITCH_STYLES}</style>
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
-        <div className="centre-wrap">
-          <div className="glass-card centre-card">
-            <span className="emoji">🎤</span>
+        <div ref={orb1Ref} className="orb orb-1" />
+        <div ref={orb2Ref} className="orb orb-2" />
             <h2>Ready to start?</h2>
             <p>{role} Interview · {MAX_QUESTIONS} questions</p>
             <p style={{ marginBottom: '32px' }}>
@@ -909,8 +882,8 @@ export default function Interview() {
   if (state === STATES.ERROR) return (
     <>
       <style>{STITCH_STYLES}</style>
-      <div className="orb orb-1" />
-      <div className="orb orb-2" />
+      <div ref={orb1Ref} className="orb orb-1" />
+      <div ref={orb2Ref} className="orb orb-2" />
       <div className="centre-wrap">
         <div className="glass-card centre-card">
           <span className="emoji">⚠️</span>
@@ -931,8 +904,8 @@ export default function Interview() {
   if (state === STATES.DONE) return (
     <>
       <style>{STITCH_STYLES}</style>
-      <div className="orb orb-1" />
-      <div className="orb orb-2" />
+      <div ref={orb1Ref} className="orb orb-1" />
+      <div ref={orb2Ref} className="orb orb-2" />
       <div className="centre-wrap">
         <div className="glass-card centre-card">
           {evaluating && (
@@ -990,19 +963,14 @@ export default function Interview() {
       <style>{STITCH_STYLES}</style>
 
       {/* Atmospheric orbs */}
-      <div className="orb orb-1" />
-      <div className="orb orb-2" />
+      <div ref={orb1Ref} className="orb orb-1" />
+      <div ref={orb2Ref} className="orb orb-2" />
 
       {/* ── Header ── */}
       <header className="site-header">
         <div className="header-inner">
           {/* Brand */}
-          <div className="brand">
-            <div className="brand-icon">
-              <span className="material-symbols-outlined" style={{ color: '#fff', fontVariationSettings: "'FILL' 1" }}>psychology</span>
-            </div>
-            <span className="brand-name">Qualif-AI</span>
-          </div>
+          <img src="/logo.png" alt="Qualif-AI" style={{ height: '36px', objectFit: 'contain' }} />
 
           {/* Nav meta */}
           <div className="header-meta">
@@ -1252,22 +1220,6 @@ export default function Interview() {
           </div>
         )}
       </main>
-
-      {/* ── Footer ── */}
-      <footer className="site-footer">
-        <div className="footer-inner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span className="footer-brand">Qualif-AI</span>
-            <span className="footer-copy">© 2024 Qualif-AI. Engineered for precision.</span>
-          </div>
-          <nav className="footer-links">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">API Docs</a>
-            <a href="#">Status</a>
-          </nav>
-        </div>
-      </footer>
     </>
   )
 }
