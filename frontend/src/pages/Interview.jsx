@@ -974,7 +974,7 @@ export default function Interview() {
       <header className="site-header">
         <div className="header-inner">
           {/* Brand */}
-          <img src="/logo.png" alt="Qualif-AI" style={{ height: '36px', objectFit: 'contain' }} />
+          <img src="/logo.png" alt="Qualif-AI" style={{ height: '44px', objectFit: 'contain' }} />
 
           {/* Nav meta */}
           <div className="header-meta">
