@@ -34,7 +34,7 @@ export default function ShareCard() {
 
   useEffect(() => {
     getShare(shareId)
-      .then(setData)
+      .then(res => setData(res.data))
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [shareId]);
