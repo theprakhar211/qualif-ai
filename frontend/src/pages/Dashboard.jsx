@@ -946,6 +946,8 @@ export default function Dashboard() {
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                               <input
                                 readOnly
+                                id="share-url"
+                                name="share-url"
                                 value={st.url}
                                 style={{
                                   flex: 1, minWidth: 0,
