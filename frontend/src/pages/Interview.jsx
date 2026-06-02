@@ -41,7 +41,8 @@ const STITCH_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist:wght@100..900&display=swap');
   @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *::before, *::after { box-sizing: border-box; }
 
   :root {
     --surface:                  #13131b;
@@ -858,6 +859,9 @@ export default function Interview() {
         <style>{STITCH_STYLES}</style>
         <div ref={orb1Ref} className="orb orb-1" />
         <div ref={orb2Ref} className="orb orb-2" />
+        <div className="centre-wrap">
+          <div className="glass-card centre-card">
+            <span className="emoji">🎤</span>
             <h2>Ready to start?</h2>
             <p>{role} Interview · {MAX_QUESTIONS} questions</p>
             <p style={{ marginBottom: '32px' }}>
