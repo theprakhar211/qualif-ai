@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Component } from 'react'
 import axios from 'axios'
+import * as Sentry from '@sentry/react'
 import Landing from './pages/Landing'
 import Setup from './pages/Setup'
 import Interview from './pages/Interview'
@@ -21,6 +22,7 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('App error:', error, info)
+    Sentry.captureException(error, { extra: info })
   }
 
   render() {
