@@ -1,10 +1,26 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import connect_db, close_db
 from routers import auth, interview, evaluation, dashboard, tts, resume
 from routers.share import router as share_router
 import os
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    integrations=[
+        StarletteIntegration(transaction_style="url"),
+        FastApiIntegration(transaction_style="url"),
+        AsyncioIntegration(),
+    ],
+    traces_sample_rate=0.2,   # capture 20% of transactions for performance
+    send_default_pii=False,   # never send personal data
+    environment=os.getenv("ENVIRONMENT", "production"),
+)
 
 
 @asynccontextmanager

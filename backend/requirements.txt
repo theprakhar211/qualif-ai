@@ -20,3 +20,4 @@ email-validator==2.2.0
 ruff
 mypy
 pytest-asyncio
+sentry-sdk[fastapi]
