@@ -13,8 +13,7 @@ Tests for routers/interview.py covering:
 Fixtures (mock_user, mock_session, mock_db, test_client) come from conftest.py.
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from bson import ObjectId
 
 from routers.interview import _compute_communication_score, get_phase
