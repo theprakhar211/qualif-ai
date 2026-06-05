@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime
 from bson import ObjectId
 from loguru import logger
 import random
 
 from models.session import SessionCreate, SessionStatus
+from services.rate_limiter import limiter
 from services.dependencies import get_current_user
 from services.question_engine import (
     generate_question_adaptive, generate_followup,
@@ -17,7 +18,7 @@ from services.skill_graph import update_skill_graph_from_session, infer_skill
 from services.answer_benchmark import benchmark_session_answers
 from database import db_instance, serialize_doc
 
-router = APIRouter()
+router = APIRouter(prefix="/interview", tags=["interview"])
 
 MAX_QUESTIONS = 8
 
@@ -119,11 +120,14 @@ PHASE_LABELS = {
 
 
 @router.post("/start")
+@limiter.limit("10/hour")
 async def start_interview(
+    request: Request,
     data: SessionCreate,
     current_user: dict = Depends(get_current_user)
 ):
     user_id = str(current_user["_id"])
+    request.state.user_id = user_id
 
     interview_type = getattr(data, 'interview_type', 'quick') or 'quick'
 
@@ -345,12 +349,15 @@ async def next_question(
 
 
 @router.post("/submit-answer/{session_id}")
+@limiter.limit("60/hour")
 async def submit_answer(
+    request: Request,
     session_id: str,
     data: dict,
     current_user: dict = Depends(get_current_user)
 ):
     """Fast answer storage with lightweight injection check."""
+    request.state.user_id = str(current_user["_id"])
     transcript = data.get("transcript", "").strip()
     question = data.get("question_text", "")
     duration = data.get("duration_seconds", 0)
@@ -472,11 +479,14 @@ Reply with only one word: GENUINE or INJECTION"""
 
 
 @router.post("/evaluate/{session_id}")
+@limiter.limit("10/hour")
 async def evaluate_session(
+    request: Request,
     session_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """Batch evaluate all answers at once using Groq + hybrid deterministic scoring."""
+    request.state.user_id = str(current_user["_id"])
     session = await db_instance.sessions_col.find_one({"_id": ObjectId(session_id)})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")

@@ -4,11 +4,16 @@ from contextlib import asynccontextmanager
 from database import connect_db, close_db
 from routers import auth, interview, evaluation, dashboard, tts, resume
 from routers.share import router as share_router
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from services.rate_limiter import limiter
 import os
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
+
 
 sentry_sdk.init(
     dsn=os.getenv("SENTRY_DSN"),
@@ -35,6 +40,8 @@ app = FastAPI(
     description="AI-powered speech interview simulator",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,9 +55,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(auth.router,       prefix="/auth",       tags=["Auth"])
-app.include_router(interview.router,  prefix="/interview",  tags=["Interview"])
+app.include_router(interview.router,  tags=["Interview"])
 app.include_router(evaluation.router, prefix="/evaluation",
                    tags=["Evaluation"])
 app.include_router(dashboard.router,  prefix="/dashboard",  tags=["Dashboard"])

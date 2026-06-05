@@ -21,3 +21,4 @@ ruff
 mypy
 pytest-asyncio
 sentry-sdk[fastapi]
+slowapi

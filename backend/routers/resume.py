@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
+from services.rate_limiter import limiter
 from services.dependencies import get_current_user
 from services.resume_parser import parse_resume
 from database import db_instance
@@ -11,20 +12,26 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 @router.post("/upload")
+@limiter.limit("5/hour")
 async def upload_resume(
+    request: Request,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user)
 ):
+    request.state.user_id = str(current_user["_id"])
     # Validate file type
     if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+        raise HTTPException(
+            status_code=400, detail="Only PDF files are supported.")
 
     # Read and validate size
     pdf_bytes = await file.read()
     if len(pdf_bytes) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File too large. Max size is 5MB.")
+        raise HTTPException(
+            status_code=400, detail="File too large. Max size is 5MB.")
 
-    logger.info(f"Parsing resume for user {str(current_user['_id'])} — {len(pdf_bytes)} bytes")
+    logger.info(
+        f"Parsing resume for user {str(current_user['_id'])} — {len(pdf_bytes)} bytes")
 
     # Parse with Groq
     parsed = await parse_resume(pdf_bytes)

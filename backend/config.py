@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY:     str = ""
     GROQ_FAST_MODEL:  str = "llama-3.1-8b-instant"
     GROQ_SMART_MODEL: str = "llama-3.3-70b-versatile"
+    SENTRY_DSN:       str = ""
 
 
 settings = Settings()
