@@ -7,8 +7,6 @@ from conftest.py (auth bypassed via dependency override).
 Run with: pytest tests/test_rate_limiter.py -v
 """
 
-import pytest
-from unittest.mock import patch, AsyncMock
 from fastapi import Request
 from services.rate_limiter import get_user_id_key, limiter
 
