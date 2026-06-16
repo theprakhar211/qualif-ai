@@ -33,10 +33,11 @@ def create_guest_token() -> str:
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
-    def decode_token(token: str) -> dict:
-        try:
-            return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            raise ValueError("Token has expired")
-        except jwt.InvalidTokenError:
-            raise ValueError("Invalid token")
+
+def decode_token(token: str) -> dict:
+    try:
+        return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise ValueError("Token has expired")
+    except jwt.InvalidTokenError:
+        raise ValueError("Invalid token")
