@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import api from '../services/api'
 
 const FEATURES = [
   {
@@ -77,9 +78,23 @@ export default function Landing() {
     return () => clearInterval(interval)
   }, [])
 
+  const [demoLoading, setDemoLoading] = useState(false)
+
   const handleCTA = () => {
     if (isLoggedIn) navigate('/app')
     else navigate('/register')
+  }
+
+  const handleDemo = async () => {
+    setDemoLoading(true)
+    try {
+      const res = await api.post('/auth/guest')
+      localStorage.setItem('token', res.data.token)
+      localStorage.setItem('user', JSON.stringify(res.data.user))
+      navigate('/app')
+    } catch {
+      setDemoLoading(false)
+    }
   }
 
   return (
@@ -190,8 +205,19 @@ export default function Landing() {
             Start practicing free →
           </button>
           <button
+            onClick={handleDemo}
+            disabled={demoLoading}
+            style={{
+              ...styles.heroSecondary,
+              opacity: demoLoading ? 0.6 : 1,
+              cursor: demoLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {demoLoading ? 'Starting…' : 'Try demo — no signup'}
+          </button>
+          <button
             onClick={() => document.getElementById('how').scrollIntoView({ behavior: 'smooth' })}
-            style={styles.heroSecondary}
+            style={{ ...styles.heroSecondary, fontSize: '14px', padding: '0.7rem 1.5rem' }}
           >
             See how it works
           </button>
@@ -291,7 +317,10 @@ export default function Landing() {
             {ROLES.map(r => (
               <button
                 key={r}
-                onClick={() => navigate('/app', { state: { preselectedRole: r } })}
+                onClick={() => isLoggedIn
+                  ? navigate('/app', { state: { preselectedRole: r } })
+                  : navigate('/register', { state: { preselectedRole: r } })
+                }
                 style={styles.roleChip}
                 className="role-chip-hover"
               >

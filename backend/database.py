@@ -49,6 +49,15 @@ async def connect_db():
     await db_instance.share_cards_col.create_index("share_id", unique=True)
     await db_instance.share_cards_col.create_index("created_at", expireAfterSeconds=2592000)
 
+    # Guest sessions auto-delete after 24 hours via MongoDB TTL index.
+    # The index fires only on documents where is_guest=True using a partial filter expression.
+    await db_instance.sessions_col.create_index(
+        "created_at",
+        expireAfterSeconds=86400,   # 24 hours
+        partialFilterExpression={"is_guest": True},
+        name="guest_session_ttl"
+    )
+
     logger.success("MongoDB connected.")
 
 

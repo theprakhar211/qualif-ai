@@ -72,6 +72,17 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />
 }
 
+// Dashboard requires a real account — guests are redirected to /app
+const AuthRoute = ({ children }) => {
+  const token = localStorage.getItem('token')
+  if (!token) return <Navigate to="/login" replace />
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (user.is_guest) return <Navigate to="/app" replace />
+  } catch {}
+  return children
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -82,7 +93,7 @@ export default function App() {
           <Route path="/register"  element={<Register />} />
           <Route path="/app"       element={<PrivateRoute><Setup /></PrivateRoute>} />
           <Route path="/interview/:sessionId" element={<PrivateRoute><Interview /></PrivateRoute>} />
-          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/dashboard" element={<AuthRoute><Dashboard /></AuthRoute>} />
           <Route path="/share/:shareId" element={<ShareCard />} />
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>

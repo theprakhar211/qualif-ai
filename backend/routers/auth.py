@@ -1,13 +1,44 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from datetime import datetime
 from loguru import logger
 
 from models.user import UserRegister, UserLogin, UserResponse
-from services.auth_service import hash_password, verify_password, create_token
+from services.auth_service import hash_password, verify_password, create_token, create_guest_token
 from services.dependencies import get_current_user
+from services.rate_limiter import limiter
 from database import db_instance
 
 router = APIRouter()
+
+GUEST_MAX_QUESTIONS = 3  # enforced in interview router
+
+
+@router.post("/guest")
+@limiter.limit("3/day")
+async def guest_login(request: Request):
+    """
+    One-click demo access — no signup required.
+    Returns a 2-hour JWT with role=guest. The token is valid for all
+    interview routes but capped at 3 questions and quick mode only.
+    Session data is stored with guest=True and auto-deleted after 24h.
+    """
+    token = create_guest_token()
+    logger.info("Guest session started")
+    return {
+        "message": "Guest session started",
+        "token": token,
+        "user": {
+            "id":       "guest",
+            "name":     "Guest",
+            "email":    "guest@qualif.ai",
+            "is_guest": True,
+        },
+        "limits": {
+            "max_questions": GUEST_MAX_QUESTIONS,
+            "mode":          "quick",
+            "expires_hours": 2,
+        }
+    }
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)

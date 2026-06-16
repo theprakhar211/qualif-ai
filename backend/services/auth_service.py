@@ -21,7 +21,20 @@ def create_token(user_id: str, email: str) -> str:
     return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
 
-def decode_token(token: str) -> dict:
+def create_guest_token() -> str:
+    """
+    Short-lived token for unauthenticated demo sessions.
+    Marked with role=guest so get_current_user skips DB lookup.
+    """
+    payload = {
+        "sub": "guest",
+        "role": "guest",
+        "exp": datetime.utcnow() + timedelta(hours=2)
+    }
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
+
+
+
     try:
         return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:

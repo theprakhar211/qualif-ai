@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from datetime import datetime
 from bson import ObjectId
 from loguru import logger
@@ -128,12 +128,20 @@ async def start_interview(
 ):
     user_id = str(current_user["_id"])
     request.state.user_id = user_id
+    is_guest = current_user.get("is_guest", False)
 
     interview_type = getattr(data, 'interview_type', 'quick') or 'quick'
 
+    # Guests are restricted to quick mode only
+    if is_guest and interview_type != 'quick':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Guest sessions are limited to quick practice mode. Sign up for full interviews."
+        )
+
     # Only fetch resume for complete interviews — quick practice is topic-based only
     resume_data = {}
-    user = await db_instance.users_col.find_one({"_id": current_user["_id"]})
+    user = None if is_guest else await db_instance.users_col.find_one({"_id": current_user["_id"]})
     if interview_type == 'complete':
         resume_data = user.get("resume", {}) if user else {}
 
@@ -182,6 +190,7 @@ async def start_interview(
         "resume_data":           resume_data,
         "evaluated":             False,
         "overall_score":         0,
+        "is_guest":              is_guest,
         "created_at":            datetime.utcnow()
     }
 
@@ -243,12 +252,22 @@ async def next_question(
     interview_type = session.get("interview_type", "quick")
     user_id = str(current_user["_id"])
     session_skills_covered = session.get("session_skills_covered", [])
+    is_guest = session.get("is_guest", False)
 
-    # Load seen question hashes for cross-session deduplication
-    user = await db_instance.users_col.find_one(
-        {"_id": current_user["_id"]}, {"seen_question_hashes": 1}
-    )
-    seen_hashes = (user or {}).get("seen_question_hashes", [])
+    # Guest cap — 3 questions max
+    if is_guest and len(answers) >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Guest sessions are limited to 3 questions. Sign up to continue."
+        )
+
+    # Load seen question hashes for cross-session deduplication (skip for guests)
+    seen_hashes: list = []
+    if not is_guest:
+        user = await db_instance.users_col.find_one(
+            {"_id": current_user["_id"]}, {"seen_question_hashes": 1}
+        )
+        seen_hashes = (user or {}).get("seen_question_hashes", [])
 
     next_q_number = len(answers) + 2
 
@@ -331,8 +350,8 @@ async def next_question(
         }
     )
 
-    # Save hash of this question to user document (capped at 200)
-    if question:
+    # Save hash of this question to user document (capped at 200) — skip for guests
+    if question and not is_guest:
         new_hashes = (seen_hashes + [question_hash(question)])[-200:]
         await db_instance.users_col.update_one(
             {"_id": current_user["_id"]},

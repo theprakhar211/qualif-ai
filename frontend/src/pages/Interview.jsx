@@ -8,6 +8,7 @@ import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis'
    Constants
 ───────────────────────────────────────────── */
 const MAX_QUESTIONS = 8
+const GUEST_MAX_QUESTIONS = 3
 
 const STATES = {
   LOADING:    'loading',
@@ -645,6 +646,13 @@ export default function Interview() {
 
   const [shareUrl, setShareUrl] = useState(null);
   const [sharing, setSharing] = useState(false);
+  const [guestUpsell, setGuestUpsell] = useState(false);
+
+  const isGuest = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}').is_guest === true }
+    catch { return false }
+  })()
+  const effectiveMax = isGuest ? GUEST_MAX_QUESTIONS : MAX_QUESTIONS
 
   const timerRef           = useRef(null)
   const startTimeRef       = useRef(null)
@@ -772,7 +780,10 @@ export default function Interview() {
       setFeedback({ empty: true })
       setTimeout(async () => {
         const next = qNumber + 1
-        if (next > MAX_QUESTIONS) { await finishInterview(sessionId); return }
+        if (next > effectiveMax) {
+          if (isGuest) { setGuestUpsell(true); setState(STATES.DONE); return }
+          await finishInterview(sessionId); return
+        }
         setQNumber(next)
         try {
           const nq = await interviewAPI.nextQuestion(sessionId)
@@ -798,8 +809,11 @@ export default function Interview() {
       setRetryCount(0)
 
       const next = qNumber + 1
-      if (next > MAX_QUESTIONS) {
-        setTimeout(() => finishInterview(sessionId), 1200)
+      if (next > effectiveMax) {
+        setTimeout(() => {
+          if (isGuest) { setGuestUpsell(true); setState(STATES.DONE) }
+          else finishInterview(sessionId)
+        }, 1200)
         return
       }
 
@@ -832,7 +846,13 @@ export default function Interview() {
     resetTranscript(); setTypedAnswer('')
     setFeedback({ skipped: true })
     const next = qNumber + 1
-    if (next > MAX_QUESTIONS) { setTimeout(() => finishInterview(sessionId), 800); return }
+    if (next > effectiveMax) {
+      setTimeout(() => {
+        if (isGuest) { setGuestUpsell(true); setState(STATES.DONE) }
+        else finishInterview(sessionId)
+      }, 800)
+      return
+    }
     setQNumber(next)
     setTimeout(async () => {
       try {
@@ -845,12 +865,13 @@ export default function Interview() {
   /* ── end early ── */
   const handleEndEarly = async () => {
     stopListening(); stopSpeaking()
+    if (isGuest) { setGuestUpsell(true); setState(STATES.DONE); return }
     await finishInterview(sessionId)
   }
 
   const phaseColor = PHASE_COLORS[phase] || '#2563eb'
   const phaseLabel = PHASE_LABELS[phase] || 'Interview'
-  const progressPct = ((qNumber - 1) / MAX_QUESTIONS) * 100
+  const progressPct = ((qNumber - 1) / effectiveMax) * 100
 
   /* ─────────────────────────────────────────
       Share component
@@ -918,7 +939,7 @@ export default function Interview() {
           <div className="glass-card centre-card">
             <span className="emoji">🎤</span>
             <h2>Ready to start?</h2>
-            <p>{role} Interview · {MAX_QUESTIONS} questions</p>
+            <p>{role} Interview · {effectiveMax} questions{isGuest ? ' · Demo' : ''}</p>
             <p style={{ marginBottom: '32px' }}>
               Make sure your microphone is ready. The interviewer will read each question aloud.
             </p>
@@ -967,14 +988,55 @@ export default function Interview() {
       <div ref={orb2Ref} className="orb orb-2" />
       <div className="centre-wrap">
         <div className="glass-card centre-card">
-          {evaluating && (
+
+          {/* ── Guest upsell screen ── */}
+          {guestUpsell && (
+            <div className="fade-in">
+              <span className="emoji">🎯</span>
+              <h2>Demo complete!</h2>
+              <p style={{ marginBottom: '8px' }}>
+                You've finished your 3-question demo. Create a free account to unlock full 8-question interviews, skill tracking, and detailed AI feedback.
+              </p>
+              <div className="btn-row" style={{ flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                <button className="primary-btn" style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={() => {
+                    localStorage.removeItem('token')
+                    localStorage.removeItem('user')
+                    navigate('/register')
+                  }}>
+                  Sign up free — unlock everything
+                  <span className="material-symbols-outlined">arrow_forward</span>
+                </button>
+                <button className="ghost-btn" style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={() => {
+                    setGuestUpsell(false)
+                    setEvaluating(true)
+                    setEvalError(false)
+                    interviewAPI.evaluate(sessionId)
+                      .then(res => setEvalResults(res.data))
+                      .catch(() => setEvalError(true))
+                      .finally(() => setEvaluating(false))
+                  }}>
+                  Evaluate my demo answers anyway
+                </button>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--outline)', marginTop: '20px', marginBottom: 0 }}>
+                No credit card required · Free forever
+              </p>
+            </div>
+          )}
+
+          {/* ── Evaluating spinner ── */}
+          {!guestUpsell && evaluating && (
             <>
               <div className="spinner" />
               <h2>Evaluating your interview…</h2>
               <p>Groq AI is reviewing all your answers. This takes 5–15 seconds.</p>
             </>
           )}
-          {!evaluating && evalError && (
+
+          {/* ── Eval error ── */}
+          {!guestUpsell && !evaluating && evalError && (
             <>
               <span className="emoji">⚠️</span>
               <h2>Evaluation failed</h2>
@@ -985,48 +1047,74 @@ export default function Interview() {
                   try { const r = await interviewAPI.evaluate(sessionId); setEvalResults(r.data) }
                   catch { setEvalError(true) } finally { setEvaluating(false) }
                 }}>Retry</button>
-                <button className="ghost-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+                {!isGuest && (
+                  <button className="ghost-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+                )}
               </div>
             </>
           )}
-          {!evaluating && evalResults && (
+
+          {/* ── Results ── */}
+          {!guestUpsell && !evaluating && evalResults && (
             <div className="fade-in">
               <ScoreRing score={evalResults.overall_score} />
               <h2 style={{ marginTop: '24px' }}>Interview complete</h2>
               <p style={{ marginBottom: '8px', color: 'var(--outline)', fontSize: '13px' }}>
                 {interviewType === 'complete' ? 'Complete Interview' : 'Quick Practice'} · {evalResults.answers?.length} questions
+                {isGuest && ' · Demo'}
               </p>
               <p>
-                {evalResults.overall_score >= 70 ? '🎉 Great performance! Check the dashboard for detailed feedback.' :
-                 evalResults.overall_score >= 40 ? '📈 Good effort. Review the missed concepts to improve.' :
-                 '💪 Keep practicing. The dashboard shows exactly what to focus on.'}
+                {evalResults.overall_score >= 70 ? '🎉 Great performance! ' + (isGuest ? 'Sign up to track your progress.' : 'Check the dashboard for detailed feedback.') :
+                 evalResults.overall_score >= 40 ? '📈 Good effort. ' + (isGuest ? 'Sign up to see missed concepts and improve.' : 'Review the missed concepts to improve.') :
+                 '💪 Keep practicing. ' + (isGuest ? 'Sign up to see exactly what to focus on.' : 'The dashboard shows exactly what to focus on.')}
               </p>
-              <button className="primary-btn" onClick={() => navigate('/dashboard')}>
-                View full results
-                <span className="material-symbols-outlined">arrow_forward</span>
-              </button>
-              <button onClick={handleShare} disabled={sharing} style={{
-                background: "rgba(37,99,235,0.15)", color: "#93c5fd",
-                border: "1px solid rgba(37,99,235,0.3)", borderRadius: 9999,
-                padding: "10px 24px", fontSize: 14, fontWeight: 500, cursor: "pointer", marginTop: "1rem"
-              }}>
-                {sharing ? "Creating link..." : "Share result"}
-              </button>
 
-              {shareUrl && (
-                <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
-                  <input readOnly value={shareUrl} style={{
-                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 8, padding: "8px 12px", color: "#94a3b8", fontSize: 12, width: 280
-                  }} />
-                  <button onClick={() => { navigator.clipboard.writeText(shareUrl); }} style={{
-                    background: "#2563eb", color: "#fff", border: "none",
-                    borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer"
-                  }}>Copy</button>
+              {isGuest ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                  <button className="primary-btn" style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => {
+                      localStorage.removeItem('token')
+                      localStorage.removeItem('user')
+                      navigate('/register')
+                    }}>
+                    Sign up free to save results
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </button>
+                  <button className="ghost-btn" style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => navigate('/')}>
+                    Back to home
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <button className="primary-btn" onClick={() => navigate('/dashboard')}>
+                    View full results
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </button>
+                  <button onClick={handleShare} disabled={sharing} style={{
+                    background: "rgba(37,99,235,0.15)", color: "#93c5fd",
+                    border: "1px solid rgba(37,99,235,0.3)", borderRadius: 9999,
+                    padding: "10px 24px", fontSize: 14, fontWeight: 500, cursor: "pointer", marginTop: "1rem"
+                  }}>
+                    {sharing ? "Creating link..." : "Share result"}
+                  </button>
+                  {shareUrl && (
+                    <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+                      <input readOnly value={shareUrl} style={{
+                        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 8, padding: "8px 12px", color: "#94a3b8", fontSize: 12, width: 280
+                      }} />
+                      <button onClick={() => { navigator.clipboard.writeText(shareUrl) }} style={{
+                        background: "#2563eb", color: "#fff", border: "none",
+                        borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer"
+                      }}>Copy</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
+
         </div>
       </div>
     </>
@@ -1064,7 +1152,7 @@ export default function Interview() {
               >
                 {phaseLabel}
               </span>
-              <span className="q-count">Q {qNumber} / {MAX_QUESTIONS}</span>
+              <span className="q-count">Q {qNumber} / {effectiveMax}</span>
             </div>
             <button className="end-btn" onClick={handleEndEarly}>End</button>
           </div>
