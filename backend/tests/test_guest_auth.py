@@ -15,8 +15,11 @@ from unittest.mock import patch
 def client():
     """TestClient with rate limiting bypassed."""
     from main import app
-    with patch("slowapi.extension.Limiter._check_request_limit"):
-        yield TestClient(app, raise_server_exceptions=False)
+
+    # Patch limit() decorator to be a no-op so the endpoint runs clean
+    with patch("services.rate_limiter.limiter.limit", return_value=lambda f: f):
+        with patch("slowapi.extension.Limiter._check_request_limit"):
+            yield TestClient(app, raise_server_exceptions=False)
 
 
 @pytest.fixture
