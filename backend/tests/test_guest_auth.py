@@ -13,17 +13,16 @@ from unittest.mock import patch
 
 @pytest.fixture
 def client():
-    """TestClient with no auth override — guest route needs no auth."""
+    """TestClient with rate limiting bypassed."""
     from main import app
-    return TestClient(app, raise_server_exceptions=False)
+    with patch("slowapi.extension.Limiter._check_request_limit"):
+        yield TestClient(app, raise_server_exceptions=False)
 
 
 @pytest.fixture
 def guest_response(client):
     """Cached guest login response used across multiple tests."""
-    with patch("routers.auth.limiter.limit", return_value=lambda f: f):
-        response = client.post("/auth/guest")
-    return response
+    return client.post("/auth/guest")
 
 
 # ── Endpoint tests ────────────────────────────────────────────────────────────
