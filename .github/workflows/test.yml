@@ -40,8 +40,12 @@ jobs:
         run: |
           cd backend
           uvicorn main:app --host 0.0.0.0 --port 8000 &
-          sleep 5
-          curl -f http://localhost:8000/health
+          echo "Waiting for backend to start..."
+          for i in {1..15}; do
+            sleep 2
+            curl -sf http://localhost:8000/health && echo "Backend ready!" && break
+            echo "Attempt $i failed, retrying..."
+          done
 
       # ── Node + frontend ──────────────────────────────────────────────────────
       - uses: actions/setup-node@v4
