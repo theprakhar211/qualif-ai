@@ -1,6 +1,8 @@
 name: Tests
 on: [push, pull_request]
+
 jobs:
+  # ── Backend: lint + type check + pytest ──────────────────────────────────────
   test:
     runs-on: ubuntu-latest
     steps:
@@ -15,3 +17,52 @@ jobs:
         run: cd backend && mypy services/ --ignore-missing-imports
       - name: Test
         run: cd backend && pytest
+
+  # ── E2E: Playwright against live frontend + backend ──────────────────────────
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      MONGO_URI:        ${{ secrets.MONGO_URI }}
+      JWT_SECRET:       ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRE_HOURS: ${{ secrets.JWT_EXPIRE_HOURS }}
+      GROQ_API_KEY:     ${{ secrets.GROQ_API_KEY }}
+      SENTRY_DSN:       ${{ secrets.SENTRY_DSN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Python + backend ─────────────────────────────────────────────────────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r backend/requirements.txt
+      - name: Start backend
+        run: |
+          cd backend
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+          curl -f http://localhost:8000/health
+
+      # ── Node + frontend ──────────────────────────────────────────────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install frontend deps
+        run: cd frontend && npm ci
+      - name: Start frontend
+        run: |
+          cd frontend
+          echo "VITE_API_URL=http://localhost:8000" > .env.local
+          npm run dev &
+          sleep 5
+      # ── Playwright ───────────────────────────────────────────────────────────
+      - name: Install Playwright
+        run: cd e2e && npm ci && npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        run: cd e2e && npm test
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/test-results/
