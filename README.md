@@ -115,6 +115,10 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 
 **Auth:** JWT with bcrypt password hashing. JWT_SECRET enforced at 32+ characters.
 
+**Rate limiting:** Per-user JWT-keyed rate limiting via slowapi — falls back to IP for unauthenticated routes.
+
+**Error monitoring:** Sentry with FastAPI, Starlette, and asyncio integrations. Captures 20% of transactions, never sends PII.
+
 ---
 
 ## Tech Stack
@@ -127,6 +131,9 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 | AI | Groq API — Llama 3.1 8B (fast) + Llama 3.3 70B (smart) |
 | Voice | Browser Web Speech API (SpeechRecognition + SpeechSynthesis) |
 | Auth | JWT (PyJWT) + bcrypt |
+| Monitoring | Sentry (error tracking + performance) |
+| Rate Limiting | slowapi (per-user JWT key, IP fallback) |
+| Containerisation | Docker + docker-compose |
 
 ---
 
@@ -135,7 +142,7 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 ```
 ┌─────────────────┐     HTTPS      ┌─────────────────────────┐
 │   React (Vite)  │ ─────────────► │   FastAPI (Python 3.11) │
-│   Vercel        │                │   Render                │
+│   Vercel        │                │   Render / Docker       │
 └─────────────────┘                └────────────┬────────────┘
                                                 │
                               ┌─────────────────┼─────────────────┐
@@ -161,21 +168,29 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 
 **Score commit before benchmarking** — scores are written to the database before the benchmarking step runs. This means a Groq timeout or crash during benchmarking never loses the evaluation results.
 
+**Containerised local stack** — multi-stage Docker build (builder + runtime) keeps the final image lean. docker-compose wires the FastAPI backend and MongoDB together with a healthcheck so the backend never starts before the database is ready.
+
 ---
 
 ## Project Structure
 
 ```
 qualif-ai/
+├── docker-compose.yml           # Wires backend + MongoDB containers
 ├── backend/
-│   ├── main.py                  # FastAPI entry, CORS, router registration
+│   ├── Dockerfile               # Multi-stage build: builder → runtime
+│   ├── .env.example             # Environment variable template
+│   ├── main.py                  # FastAPI entry, CORS, Sentry, rate limiting, routers
 │   ├── config.py                # Pydantic settings, reads .env
 │   ├── database.py              # Motor async MongoDB connection + indexes
 │   ├── routers/
 │   │   ├── auth.py              # register, login, /me — JWT
 │   │   ├── interview.py         # start, submit-answer, next-question, evaluate, end
+│   │   ├── evaluation.py        # evaluation pipeline
 │   │   ├── dashboard.py         # sessions, stats, insights, skill graph, reset
-│   │   └── resume.py            # PDF upload → Groq parse → store on user
+│   │   ├── tts.py               # text-to-speech endpoint
+│   │   ├── resume.py            # PDF upload → Groq parse → store on user
+│   │   └── share.py             # shareable result card links
 │   ├── services/
 │   │   ├── groq_service.py      # ask_groq(), batch_evaluate()
 │   │   ├── hybrid_evaluator.py  # keyword scoring, structure detection, blend
@@ -183,13 +198,22 @@ qualif-ai/
 │   │   ├── answer_benchmark.py  # ideal answer generation + comparison
 │   │   ├── question_engine.py   # generate_question(), adaptive wrapper
 │   │   ├── resume_parser.py     # PyMuPDF extraction + Groq structured parse
+│   │   ├── rate_limiter.py      # slowapi limiter keyed by JWT user ID
 │   │   ├── auth_service.py      # hash_password, create_token, decode_token
 │   │   └── dependencies.py      # get_current_user FastAPI dependency
+│   ├── data/
+│   │   ├── questions_seed.json  # seed data
+│   │   └── seed.py              # one-time DB seeder
 │   └── tests/
 │       ├── conftest.py
 │       ├── test_hybrid_evaluator.py   # 60+ unit tests
 │       ├── test_skill_graph.py        # 40+ unit tests
-│       └── test_answer_quality.py     # tests for answer quality utilities
+│       ├── test_groq_service.py
+│       ├── test_guest_auth.py
+│       ├── test_interview_router.py
+│       ├── test_rate_limiter.py
+│       ├── test_resume_parser.py
+│       └── test_answer_quality.py
 ├── frontend/
 │   └── src/
 │       ├── pages/
@@ -212,39 +236,70 @@ qualif-ai/
 ## Local Setup
 
 ### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- MongoDB Atlas account (free M0 tier)
-- Groq API key (free tier: 14,400 req/day)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) — that's it. No Python, no Node, no MongoDB required.
 
-### Backend
+### 1. Clone and configure
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
+git clone https://github.com/theprakhar211/qualif-ai.git
+cd qualif-ai
+cp backend/.env.example backend/.env
 ```
 
-Create `backend/.env`:
+Open `backend/.env` and fill in two values:
 ```env
-MONGO_URI=mongodb+srv://...
-DB_NAME=qualifai
-JWT_SECRET=your_random_32_plus_char_string_here
-JWT_EXPIRE_HOURS=24
 GROQ_API_KEY=gsk_...
-GROQ_FAST_MODEL=llama-3.1-8b-instant
-GROQ_SMART_MODEL=llama-3.3-70b-versatile
-FRONTEND_URL=http://localhost:5173
+JWT_SECRET=any_random_string_that_is_32_characters_or_longer
 ```
+
+Everything else can stay as-is for local development.
+
+### 2. Start the stack
 
 ```bash
-uvicorn main:app --reload
-# API running at http://localhost:8000
+docker compose up --build
 ```
 
-### Frontend
+First run takes 3–5 minutes (downloads images, installs dependencies, fetches spacy model). Subsequent runs take ~10 seconds.
+
+Wait for:
+```
+qualifai-backend  | INFO:     Application startup complete.
+```
+
+### 3. Seed the database (first time only)
+
+Open a second terminal and run:
+
+```powershell
+docker compose exec backend bash -c "PYTHONPATH=/app python /app/data/seed.py"
+```
+
+```
+Cleared 0 existing questions.
+Seeded 10 fallback questions.
+```
+
+### 4. Verify
+
+| URL | What you should see |
+|---|---|
+| http://localhost:8000/docs | FastAPI Swagger UI |
+| http://localhost:8000/health | `{"status": "ok"}` |
+
+### Useful commands
+
+```bash
+docker compose up          # start stack (no rebuild)
+docker compose up --build  # rebuild after requirements.txt changes
+docker compose down        # stop everything
+docker compose down -v     # stop + wipe database volume (full reset)
+docker compose logs -f backend   # tail backend logs only
+```
+
+### Frontend (optional — only if developing the UI)
+
+The live frontend at [qualif-smart-ai.vercel.app](https://qualif-smart-ai.vercel.app) already points at the production backend. To run the frontend locally against your Docker backend:
 
 ```bash
 cd frontend
@@ -264,9 +319,8 @@ npm run dev
 ### Tests
 
 ```bash
-cd backend
-pytest tests/ -v
-# 155 passed across 3 test files
+docker compose exec backend bash -c "PYTHONPATH=/app pytest tests/ -v"
+# 248 tests at 81% coverage across 8 test files
 ```
 
 ---
@@ -295,17 +349,19 @@ Python version pinned in `backend/runtime.txt`: `python-3.11.9`
 
 ## Environment Variables
 
-### Backend (Render)
+### Backend (Render / Docker)
 | Variable | Description |
 |---|---|
-| `MONGO_URI` | MongoDB Atlas SRV connection string |
+| `MONGO_URI` | MongoDB URI — Atlas SRV for production, `mongodb://mongo:27017/qualifai` for Docker |
 | `DB_NAME` | Database name (`qualifai`) |
 | `JWT_SECRET` | Random string, 32+ characters |
 | `JWT_EXPIRE_HOURS` | Token expiry (`24`) |
 | `GROQ_API_KEY` | Groq API key (`gsk_...`) |
 | `GROQ_FAST_MODEL` | `llama-3.1-8b-instant` |
 | `GROQ_SMART_MODEL` | `llama-3.3-70b-versatile` |
-| `FRONTEND_URL` | Vercel deployment URL |
+| `FRONTEND_URL` | Allowed CORS origin |
+| `SENTRY_DSN` | Sentry DSN (optional — Sentry skips init if blank) |
+| `ENVIRONMENT` | `development` or `production` |
 
 ### Frontend (Vercel)
 | Variable | Description |
@@ -321,6 +377,7 @@ Python version pinned in `backend/runtime.txt`: `python-3.11.9`
 - **Groq free tier** — 14,400 requests/day. Sufficient for personal use and portfolio demos.
 - **Voice requires Chrome/Edge** — Firefox does not support Web Speech API. A fallback to typed-only mode is available.
 - **Question deduplication cap** — seen question hashes are capped at 200 (~25 sessions). Questions may repeat beyond that; cap increase or smarter rotation is planned.
+- **In-memory rate limiting** — slowapi state is not shared across multiple instances. Acceptable for single Render instance; would need Redis backend for horizontal scaling.
 
 ---
 
