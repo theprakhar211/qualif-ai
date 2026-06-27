@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import connect_db, close_db
@@ -69,7 +69,9 @@ app.include_router(share_router, prefix="/share", tags=["Share"])
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])
-async def health():
+async def health(response: Response):
+    # If it's UptimeRobot making a HEAD request, just send headers back fast
+    # This prevents 404 validation errors down the line
     return {"status": "ok", "service": "Qualif-AI"}
 
 if __name__ == "__main__":
