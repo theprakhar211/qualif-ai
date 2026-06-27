@@ -23,5 +23,5 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 COPY . .
 
-# Explicitly invoke the shell so $PORT is guaranteed to evaluate to an integer
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Just launch python to run your main file
+CMD ["python", "main.py"]

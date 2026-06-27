@@ -9,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from services.rate_limiter import limiter
 import os
+import uvicorn
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
@@ -70,3 +71,8 @@ app.include_router(share_router, prefix="/share", tags=["Share"])
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok", "service": "Qualif-AI"}
+
+if __name__ == "__main__":
+    # Pull PORT from Railway environment, cast it to int, fallback to 8000 locally
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
