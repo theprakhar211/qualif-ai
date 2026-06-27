@@ -74,6 +74,11 @@ async def health(response: Response):
     # This prevents 404 validation errors down the line
     return {"status": "ok", "service": "Qualif-AI"}
 
+
+@app.get("/")
+async def root():
+    return {"message": "Qualif-AI Backend is running!"}
+
 if __name__ == "__main__":
     # Pull PORT from Railway environment, cast it to int, fallback to 8000 locally
     port = int(os.getenv("PORT", 8000))
