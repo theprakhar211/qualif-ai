@@ -11,7 +11,7 @@ const FEATURES = [
   {
     icon: '🤖',
     title: 'AI-generated questions',
-    desc: 'Llama 3 generates fresh, role-specific questions every session. No two interviews are the same.'
+    desc: 'AI generates fresh, role-specific questions every session. No two interviews are the same.'
   },
   {
     icon: '📄',
@@ -181,7 +181,7 @@ export default function Landing() {
 
       {/* Hero */}
       <section style={styles.hero}>
-        <div style={styles.heroBadge}>100% free · No credit card · Powered by Llama 3</div>
+        <div style={styles.heroBadge}>100% free · No credit card · Powered by gpt-oss on Groq</div>
         <h1 style={styles.heroTitle}>
           Practice interviews<br />
           with an AI that<br />
@@ -291,7 +291,7 @@ export default function Landing() {
               { name: 'FastAPI',  color: '#009688', desc: 'Backend',   icon: 'https://cdn.simpleicons.org/fastapi/009688' },
               { name: 'MongoDB',  color: '#4db33d', desc: 'Database',  icon: 'https://cdn.simpleicons.org/mongodb/4db33d' },
               { name: 'Groq',     color: '#f55036', desc: 'LLM API',   emoji: '⚡' },
-              { name: 'Llama 3',  color: '#7c3aed', desc: 'AI Model',  emoji: '🦙' },
+              { name: 'gpt-oss',  color: '#7c3aed', desc: 'AI Model',  emoji: '🧠' },
               { name: 'Vercel',   color: '#ffffff', desc: 'Hosting',   icon: 'https://cdn.simpleicons.org/vercel/ffffff' },
             ].map(t => (
               <div key={t.name} style={styles.techCard}>

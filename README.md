@@ -55,7 +55,7 @@ Most mock interview tools give you a list of questions and a text box. Qualif-AI
 - STT error correction built into evaluation prompt
 
 ### Hybrid Scoring Engine
-- LLM score (Llama 3.3 70B) blended with deterministic signals
+- LLM score (gpt-oss-120b) blended with deterministic signals
 - Keyword bank per topic — checks for expected technical terms
 - Structure detection — intro / explanation / conclusion patterns
 - Depth penalty — penalises genuinely thin or vague answers
@@ -88,7 +88,7 @@ Every answer goes through 4 stages before a score is committed:
 `_sanitise_answer()` runs regex over the raw transcript before it reaches any LLM. Detected injection attempts are replaced with a flagged placeholder so they can't influence evaluation.
 
 **Stage 2 — LLM batch evaluation**
-All answers are sent to Llama 3.3 70B in a single prompt. XML delimiters (`<candidate_answer>` tags) wrap each answer to separate data from instructions. Returns per-answer: score, reasoning, keywords mentioned, missing concepts, corrected transcript.
+All answers are sent to gpt-oss-120b (via Groq) in a single prompt. XML delimiters (`<candidate_answer>` tags) wrap each answer to separate data from instructions. Returns per-answer: score, reasoning, keywords mentioned, missing concepts, corrected transcript.
 
 **Stage 3 — Hybrid deterministic scoring**
 For each answer, a local scorer runs in parallel:
@@ -111,7 +111,7 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 2. XML delimiters (`<candidate_answer>` tags) separate candidate data from prompt instructions
 3. Explicit SECURITY rule in the system prompt instructs the LLM to ignore embedded instructions
 4. Hard score floor in the deterministic layer — a manipulated LLM score can't survive keyword=0% + structure=0% + word_count<30
-5. Typed answers get an additional LLM classification check at submission time; flagged answers skip benchmarking entirely
+5. Typed answers (5+ words) get an additional LLM classification check (GENUINE vs INJECTION) at submission time; flagged answers are rejected before evaluation. The check fails open so an API error never blocks a real answer
 
 **Auth:** JWT with bcrypt password hashing. JWT_SECRET enforced at 32+ characters.
 
@@ -128,7 +128,7 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 | Frontend | React 18 + Vite, deployed on Vercel |
 | Backend | FastAPI (Python 3.11), deployed on Render |
 | Database | MongoDB Atlas (M0 free tier) |
-| AI | Groq API — Llama 3.1 8B (fast) + Llama 3.3 70B (smart) |
+| AI | Groq API — gpt-oss-20b (fast) + gpt-oss-120b (smart) |
 | Voice | Browser Web Speech API (SpeechRecognition + SpeechSynthesis) |
 | Auth | JWT (PyJWT) + bcrypt |
 | Monitoring | Sentry (error tracking + performance) |
@@ -149,8 +149,8 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
                               │                 │                 │
                     ┌─────────▼──────┐  ┌───────▼──────┐  ┌──────▼──────┐
                     │  MongoDB Atlas │  │  Groq API    │  │  Hybrid     │
-                    │  Sessions      │  │  Llama 3.1/  │  │  Evaluator  │
-                    │  Users         │  │  Llama 3.3   │  │  (local)    │
+                    │  Sessions      │  │  gpt-oss-20b │  │  Evaluator  │
+                    │  Users         │  │  gpt-oss-120b│  │  (local)    │
                     │  Skill Graphs  │  └──────────────┘  └─────────────┘
                     │  Ideal Answers │
                     └────────────────┘
@@ -320,7 +320,7 @@ npm run dev
 
 ```bash
 docker compose exec backend bash -c "PYTHONPATH=/app pytest tests/ -v"
-# 248 tests at 81% coverage across 8 test files
+# 247 backend tests across 8 test files (plus 4 Playwright E2E specs in e2e/)
 ```
 
 ---
@@ -357,8 +357,8 @@ Python version pinned in `backend/runtime.txt`: `python-3.11.9`
 | `JWT_SECRET` | Random string, 32+ characters |
 | `JWT_EXPIRE_HOURS` | Token expiry (`24`) |
 | `GROQ_API_KEY` | Groq API key (`gsk_...`) |
-| `GROQ_FAST_MODEL` | `llama-3.1-8b-instant` |
-| `GROQ_SMART_MODEL` | `llama-3.3-70b-versatile` |
+| `GROQ_FAST_MODEL` | `openai/gpt-oss-20b` |
+| `GROQ_SMART_MODEL` | `openai/gpt-oss-120b` |
 | `FRONTEND_URL` | Allowed CORS origin |
 | `SENTRY_DSN` | Sentry DSN (optional — Sentry skips init if blank) |
 | `ENVIRONMENT` | `development` or `production` |
