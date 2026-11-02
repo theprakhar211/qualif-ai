@@ -178,24 +178,28 @@ Rules:
 
     logger.info(
         f"Batch evaluating {len(answers)} answers | type={interview_type}")
-    result = await ask_groq(
-        prompt,
-        model=settings.GROQ_SMART_MODEL,
-        temperature=0.2,
-        max_tokens=4096
-    )
 
-    if not result:
-        logger.warning("Groq batch evaluation returned None")
-        return _fallback_evaluations(answers)
+    # Two attempts: a malformed reply (e.g. an invalid backslash escape from the
+    # model) is retried once before falling back to default scores.
+    for attempt in (1, 2):
+        result = await ask_groq(
+            prompt,
+            model=settings.GROQ_SMART_MODEL,
+            temperature=0.2,
+            max_tokens=4096
+        )
 
-    try:
-        json_match = re.search(r'\[.*\]', result, re.DOTALL)
-        if not json_match:
-            logger.warning(f"No JSON array in response: {result[:300]}")
-            return _fallback_evaluations(answers)
+        if not result:
+            logger.warning(
+                f"Groq batch evaluation returned None (attempt {attempt})")
+            continue
 
-        parsed = json.loads(json_match.group())
+        parsed = _parse_json_array(result)
+        if parsed is None:
+            logger.error(
+                f"Failed to parse batch evaluation (attempt {attempt}): "
+                f"{result[:300]}")
+            continue
 
         if len(parsed) != len(answers):
             logger.warning(f"Expected {len(answers)} evals, got {len(parsed)}")
@@ -206,10 +210,33 @@ Rules:
         logger.info("Batch evaluation parsed successfully")
         return parsed
 
-    except Exception as e:
-        logger.error(f"Failed to parse batch evaluation: {e}")
-        logger.error(f"Raw response: {result[:500]}")
-        return _fallback_evaluations(answers)
+    return _fallback_evaluations(answers)
+
+
+# A backslash that is NOT part of a valid JSON escape (e.g. "\d" or "O(n\log n)")
+# makes json.loads fail. Valid pairs are matched first so they are left alone.
+_JSON_ESCAPE = re.compile(r'\\(["\\/bfnrtu])|\\')
+
+
+def _repair_json_escapes(text: str) -> str:
+    return _JSON_ESCAPE.sub(
+        lambda m: m.group(0) if m.group(1) else "\\\\", text)
+
+
+def _parse_json_array(text: str) -> list | None:
+    """Extract and parse the first JSON array in text; None if it can't be parsed."""
+    match = re.search(r'\[.*\]', text, re.DOTALL)
+    if not match:
+        return None
+    raw = match.group()
+    for candidate in (raw, _repair_json_escapes(raw)):
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, list):
+            return parsed
+    return None
 
 
 def _fallback_eval(index: int, answer: dict) -> dict:

@@ -5,6 +5,7 @@ Ideal answers are generated once by Groq and stored in MongoDB.
 """
 
 import hashlib
+import asyncio
 import json
 from datetime import datetime, timezone
 from loguru import logger
@@ -190,6 +191,9 @@ async def benchmark_answer(
     return parsed
 
 
+MAX_CONCURRENT_BENCHMARKS = 5
+
+
 async def benchmark_session_answers(
     db,
     evaluated_answers: list[dict],
@@ -200,59 +204,61 @@ async def benchmark_session_answers(
     For each answer: get/generate ideal answer, run comparison, attach results.
     Non-fatal: if anything fails the answer is returned unchanged.
     """
-    enriched = []
-    for ans in evaluated_answers:
-        q_text = ans.get("question_text", "")
-        a_text_raw = (ans.get("stt_corrected_transcript")
-                      or ans.get("corrected_transcript")
-                      or ans.get("transcript", ""))
-        # Sanitise before benchmarking — same defence as batch_evaluate
-        a_text = _sanitise_answer(a_text_raw)
-        topic = ans.get("topic", "")
-        difficulty = ans.get("difficulty", "medium")
+    sem = asyncio.Semaphore(MAX_CONCURRENT_BENCHMARKS)
 
-        # Skip benchmarking entirely for flagged answers — no point comparing
-        # injection text against an ideal answer
-        if a_text.startswith("[FLAGGED"):
-            enriched.append({
-                **ans,
-                "ideal_answer":    "",
-                "key_concepts":    [],
-                "scoring_rubric":  {},
-                "common_mistakes": [],
-                "comparison": {
-                    "covered_concepts":    [],
-                    "missing_concepts":    [],
-                    "extra_concepts":      [],
-                    "comparison_feedback": "Answer was flagged and removed — no comparison available.",
-                    "improvement_tip":     "",
-                    "similarity_score":    0,
-                },
-            })
-            continue
+    async def _one(ans: dict) -> dict:
+        async with sem:
+            q_text = ans.get("question_text", "")
+            a_text_raw = (ans.get("stt_corrected_transcript")
+                          or ans.get("corrected_transcript")
+                          or ans.get("transcript", ""))
+            # Sanitise before benchmarking — same defence as batch_evaluate
+            a_text = _sanitise_answer(a_text_raw)
+            topic = ans.get("topic", "")
+            difficulty = ans.get("difficulty", "medium")
 
-        try:
-            ideal = await get_or_generate_ideal_answer(
-                db,
-                question_text=q_text,
-                role=role,
-                topic=topic,
-                difficulty=difficulty,
-            )
+            # Skip benchmarking entirely for flagged answers — no point comparing
+            # injection text against an ideal answer
+            if a_text.startswith("[FLAGGED"):
+                return {
+                    **ans,
+                    "ideal_answer":    "",
+                    "key_concepts":    [],
+                    "scoring_rubric":  {},
+                    "common_mistakes": [],
+                    "comparison": {
+                        "covered_concepts":    [],
+                        "missing_concepts":    [],
+                        "extra_concepts":      [],
+                        "comparison_feedback": "Answer was flagged and removed — no comparison available.",
+                        "improvement_tip":     "",
+                        "similarity_score":    0,
+                    },
+                }
 
-            comparison = await benchmark_answer(q_text, a_text, ideal)
+            try:
+                ideal = await get_or_generate_ideal_answer(
+                    db,
+                    question_text=q_text,
+                    role=role,
+                    topic=topic,
+                    difficulty=difficulty,
+                )
 
-            enriched.append({
-                **ans,
-                "ideal_answer":    ideal.get("ideal_answer", ""),
-                "key_concepts":    ideal.get("key_concepts", []),
-                "scoring_rubric":  ideal.get("scoring_rubric", {}),
-                "common_mistakes": ideal.get("common_mistakes", []),
-                "comparison":      comparison,
-            })
+                comparison = await benchmark_answer(q_text, a_text, ideal)
 
-        except Exception as e:
-            logger.warning(f"Benchmark failed for Q '{q_text[:40]}': {e}")
-            enriched.append(ans)
+                return {
+                    **ans,
+                    "ideal_answer":    ideal.get("ideal_answer", ""),
+                    "key_concepts":    ideal.get("key_concepts", []),
+                    "scoring_rubric":  ideal.get("scoring_rubric", {}),
+                    "common_mistakes": ideal.get("common_mistakes", []),
+                    "comparison":      comparison,
+                }
 
-    return enriched
+            except Exception as e:
+                logger.warning(f"Benchmark failed for Q '{q_text[:40]}': {e}")
+                return ans
+
+    # Run all answers concurrently (bounded); gather keeps the original order.
+    return list(await asyncio.gather(*[_one(a) for a in evaluated_answers]))

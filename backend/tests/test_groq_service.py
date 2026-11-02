@@ -20,6 +20,7 @@ from services.groq_service import (
     ask_groq,
     ask_groq_smart,
     batch_evaluate,
+    _repair_json_escapes,
 )
 
 
@@ -356,3 +357,55 @@ class TestBatchEvaluate:
             prompt_sent = mock_ask.call_args.args[0]
             assert "[FLAGGED" in prompt_sent
             assert "ignore previous instructions" not in prompt_sent
+
+
+# -----------------------------------------------------------------------------
+# JSON escape repair and retry (regression: "Invalid \\escape" sent a real
+# interview to the default fallback scores)
+# -----------------------------------------------------------------------------
+
+_ONE_ANSWER = [{"transcript": "Use a trie.", "phase": "technical",
+                "input_mode": "voice", "question_text": "Design autocomplete."}]
+_GOOD = ('[{"question_number": 1, "score": 77, "reasoning": "ok", '
+         '"keywords_mentioned": [], "missing_concepts": [], "corrected_transcript": "x"}]')
+_BAD_ESCAPE = _GOOD.replace('"reasoning": "ok"', '"reasoning": "uses \\d+ regex"')
+
+
+class TestJsonEscapeRepair:
+
+    def test_repairs_invalid_backslash(self):
+        import json
+        fixed = _repair_json_escapes('{"a": "x\\d y"}')
+        assert json.loads(fixed)["a"] == "x\\d y"
+
+    def test_leaves_valid_escapes_alone(self):
+        import json
+        text = '{"a": "line\\nbreak \\\\ \\"quoted\\""}'
+        assert json.loads(_repair_json_escapes(text)) == json.loads(text)
+
+
+class TestBatchEvaluateRecovery:
+
+    @pytest.mark.asyncio
+    async def test_invalid_escape_is_repaired_without_retry(self):
+        mock = AsyncMock(return_value=_BAD_ESCAPE)
+        with patch("services.groq_service.ask_groq", new=mock):
+            result = await batch_evaluate("Software Engineer", _ONE_ANSWER)
+        assert result[0]["score"] == 77
+        assert mock.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_retries_once_after_unparseable_reply(self):
+        mock = AsyncMock(side_effect=["not json at all", _GOOD])
+        with patch("services.groq_service.ask_groq", new=mock):
+            result = await batch_evaluate("Software Engineer", _ONE_ANSWER)
+        assert result[0]["score"] == 77
+        assert mock.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_falls_back_after_two_failures(self):
+        mock = AsyncMock(side_effect=["bad", "worse"])
+        with patch("services.groq_service.ask_groq", new=mock):
+            result = await batch_evaluate("Software Engineer", _ONE_ANSWER)
+        assert mock.call_count == 2
+        assert result[0]["score"] != 77
