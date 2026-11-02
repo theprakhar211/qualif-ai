@@ -58,7 +58,11 @@ Candidate answer: {answer}
 Does this answer make a genuine attempt to address the question?
 Reply with only YES or NO."""
 
-    result = await ask_groq(prompt, model=None, temperature=0.0, max_tokens=5)
+    # 200 tokens + low effort: gpt-oss reasons first, so 5 tokens returned empty
+    result = await ask_groq(
+        prompt, model=None, temperature=0.0,
+        max_tokens=200, reasoning_effort="low",
+    )
     if not result:
         return True  # if API fails, assume answer is ok — don't block flow
     return result.strip().upper().startswith("Y")

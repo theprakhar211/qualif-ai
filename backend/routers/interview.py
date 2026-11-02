@@ -397,7 +397,7 @@ async def submit_answer(
             detail="INJECTION_ATTEMPT"
         )
 
-    # ── Layer 2: LLM classification (8B, fast, ~0.5s) ────────────────────
+    # ── Layer 2: LLM classification (fast model) ────────────────────
     # Only run for typed answers — voice answers are harder to inject
     # and the extra latency would feel odd during a live interview
     if input_mode == "text" and len(transcript.split()) >= 5:
@@ -411,8 +411,14 @@ Reply with only one word: GENUINE or INJECTION"""
                 classification_prompt,
                 model=None,
                 temperature=0.0,
-                max_tokens=10
+                # gpt-oss reasons before answering, so 10 tokens came back empty
+                # (and the check silently passed). 200 + low effort is enough.
+                max_tokens=200,
+                reasoning_effort="low",
             )
+            if not result:
+                logger.warning(
+                    "Injection classifier returned an empty reply (check max_tokens)")
             if result and "INJECTION" in result.upper():
                 logger.warning(
                     f"LLM injection blocked at submission for session {session_id}")

@@ -5,6 +5,7 @@ backend/**/__pycache__/
 backend/*.pyc
 backend/.env
 backend/MeloTTS/
+backend/.ruff_cache/
 
 # Frontend
 frontend/node_modules/

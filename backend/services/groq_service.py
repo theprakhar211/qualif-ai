@@ -50,7 +50,14 @@ async def ask_groq(
     model: str | None = None,
     temperature: float = 0.7,
     max_tokens: int = 1024,
+    reasoning_effort: str | None = None,
 ) -> str | None:
+    """
+    reasoning_effort ("low" | "medium" | "high") is only sent to gpt-oss models.
+    These are reasoning models: their hidden reasoning counts toward max_tokens,
+    so tiny budgets (e.g. 5 or 10) can come back empty. For short classification
+    calls use a modest budget (~200) together with reasoning_effort="low".
+    """
     if model is None:
         model = settings.GROQ_FAST_MODEL
     try:
@@ -59,11 +66,16 @@ async def ask_groq(
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
+        extra: dict = {}
+        if reasoning_effort and "gpt-oss" in model:
+            extra["extra_body"] = {"reasoning_effort": reasoning_effort}
+
         response = await client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
+            **extra,
         )
         content = response.choices[0].message.content
         return content.strip() if content else None

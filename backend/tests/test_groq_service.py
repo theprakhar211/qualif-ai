@@ -176,6 +176,42 @@ class TestAskGroq:
             assert call_kwargs["model"] == "llama-fast"
 
     @pytest.mark.asyncio
+    async def test_sends_reasoning_effort_for_gpt_oss_models(self):
+        """reasoning_effort is passed via extra_body to gpt-oss models."""
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = "GENUINE"
+
+        with patch("services.groq_service.client") as mock_client:
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+            await ask_groq("p", model="openai/gpt-oss-20b", reasoning_effort="low")
+            kwargs = mock_client.chat.completions.create.call_args.kwargs
+            assert kwargs["extra_body"] == {"reasoning_effort": "low"}
+
+    @pytest.mark.asyncio
+    async def test_omits_reasoning_effort_for_other_models(self):
+        """Non gpt-oss models never receive the reasoning_effort field."""
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = "ok"
+
+        with patch("services.groq_service.client") as mock_client:
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+            await ask_groq("p", model="some-other-model", reasoning_effort="low")
+            kwargs = mock_client.chat.completions.create.call_args.kwargs
+            assert "extra_body" not in kwargs
+
+    @pytest.mark.asyncio
+    async def test_omits_extra_body_when_no_reasoning_effort(self):
+        """Default calls are unchanged: no extra_body is sent."""
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = "ok"
+
+        with patch("services.groq_service.client") as mock_client:
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+            await ask_groq("p", model="openai/gpt-oss-20b")
+            kwargs = mock_client.chat.completions.create.call_args.kwargs
+            assert "extra_body" not in kwargs
+
+    @pytest.mark.asyncio
     async def test_includes_system_message_when_provided(self):
         """ask_groq includes system message when system param is non-empty."""
         mock_response = MagicMock()
