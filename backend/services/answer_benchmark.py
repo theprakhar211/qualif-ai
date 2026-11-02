@@ -7,11 +7,14 @@ Ideal answers are generated once by Groq and stored in MongoDB.
 import hashlib
 import asyncio
 import json
+import re
 from datetime import datetime, timezone
 from loguru import logger
 
 # Import directly — no injected client needed
-from services.groq_service import ask_groq, ask_groq_smart, _sanitise_answer
+from services.groq_service import (
+    ask_groq, ask_groq_smart, _sanitise_answer, _repair_json_escapes,
+)
 
 
 IDEAL_ANSWER_PROMPT = """You are a senior software engineer and technical interviewer.
@@ -71,24 +74,29 @@ def question_fingerprint(question_text: str, role: str, difficulty: str) -> str:
 
 
 def _parse_json_response(raw: str | None) -> dict | None:
-    """Safely parse a JSON response, stripping markdown fences if present."""
+    """Safely parse a JSON response, stripping markdown fences if present.
+
+    Also repairs invalid backslash escapes (e.g. "\\d+") that models sometimes emit.
+    """
     if not raw:
         return None
     clean = raw.strip()
     if clean.startswith("```"):
-        parts = clean.split("```")
-        clean = next((p for p in parts if p.strip()
-                     and not p.lower().startswith("json")), parts[0])
-    try:
-        return json.loads(clean.strip())
-    except Exception:
-        import re
-        m = re.search(r'\{.*\}', clean, re.DOTALL)
-        if m:
-            try:
-                return json.loads(m.group())
-            except Exception:
-                pass
+        # strip the opening fence (with optional language tag) and the closing one
+        clean = re.sub(r"^```[a-zA-Z]*\s*", "", clean)
+        clean = re.sub(r"\s*```$", "", clean)
+    candidates = [clean.strip()]
+    m = re.search(r'\{.*\}', clean, re.DOTALL)
+    if m:
+        candidates.append(m.group())
+    candidates += [_repair_json_escapes(c) for c in candidates]
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except Exception:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
     return None
 
 
@@ -178,7 +186,8 @@ async def benchmark_answer(
 
     if not parsed:
         logger.warning(
-            f"Could not parse benchmark comparison for: {question_text[:60]}")
+            f"Could not parse benchmark comparison for: {question_text[:60]} "
+            f"| raw: {(raw or '')[:200]!r}")
         return {
             "covered_concepts":    [],
             "missing_concepts":    ideal_data.get("key_concepts", []),

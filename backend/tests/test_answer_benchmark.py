@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from services.answer_benchmark import benchmark_session_answers
+from services.answer_benchmark import _parse_json_response, benchmark_session_answers
 
 IDEAL = {"ideal_answer": "ideal", "key_concepts": ["a"],
          "scoring_rubric": {}, "common_mistakes": []}
@@ -60,3 +60,23 @@ class TestBenchmarkSessionAnswers:
             elapsed = time.perf_counter() - start
         # sequential would take >= 0.5s
         assert elapsed < 0.35
+
+
+class TestParseJsonResponse:
+
+    def test_plain_json(self):
+        assert _parse_json_response('{"similarity_score": 70}') == {"similarity_score": 70}
+
+    def test_fenced_json(self):
+        assert _parse_json_response('```json\n{"a": 1}\n```') == {"a": 1}
+
+    def test_json_embedded_in_text(self):
+        assert _parse_json_response('Here you go: {"a": 1} done') == {"a": 1}
+
+    def test_invalid_backslash_escape_is_repaired(self):
+        out = _parse_json_response('{"comparison_feedback": "uses \\d+ regex"}')
+        assert out is not None and "regex" in out["comparison_feedback"]
+
+    def test_garbage_returns_none(self):
+        assert _parse_json_response("not json") is None
+        assert _parse_json_response(None) is None
