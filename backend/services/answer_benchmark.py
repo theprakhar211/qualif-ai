@@ -26,10 +26,14 @@ Role: {role}
 Topic: {topic}
 Difficulty: {difficulty}
 
+Calibrate everything to this difficulty. List only 4 to 6 core concepts a strong
+candidate at this level would be expected to mention. Do NOT include research-level,
+highly specialised or optional advanced topics unless the difficulty is hard.
+
 Generate an ideal interview answer. Return ONLY a JSON object with these exact keys:
 {{
   "ideal_answer": "<2-4 paragraph ideal answer a strong candidate would give>",
-  "key_concepts": ["concept1", "concept2"],
+  "key_concepts": ["<4 to 6 core concepts>"],
   "scoring_rubric": {{
     "excellent": "<what a 90-100 answer includes>",
     "good": "<what a 70-89 answer includes>",

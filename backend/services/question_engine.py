@@ -180,6 +180,33 @@ async def generate_behavioural_question(
     return random.choice(unused)
 
 
+DIFFICULTY_GUIDE = {
+    "easy": (
+        "A fundamentals question about ONE core idea (what it is, why it is used, "
+        "a simple example, or a basic comparison). A student who has finished an "
+        "introductory course should answer it in 30-60 seconds. No scale, "
+        "concurrency, optimisation or edge-case requirements."
+    ),
+    "medium": (
+        "Apply one or two core concepts to a small practical scenario and discuss "
+        "a trade-off. Answerable in about a minute."
+    ),
+    "hard": (
+        "A design or optimisation problem with scale, constraints or edge cases "
+        "that needs deeper reasoning. Still answerable verbally in 1-2 minutes."
+    ),
+}
+
+_DIFFICULTY_ORDER = {"easy": 0, "medium": 1, "hard": 2}
+
+
+def cap_difficulty(inferred: str, ceiling: str) -> str:
+    """Never go harder than the difficulty the user chose (the ceiling)."""
+    if _DIFFICULTY_ORDER.get(inferred, 1) > _DIFFICULTY_ORDER.get(ceiling, 1):
+        return ceiling
+    return inferred
+
+
 async def generate_question(
     role: str,
     topic: str,
@@ -212,7 +239,12 @@ async def generate_question(
     prompt = f"""Generate a {difficulty} difficulty {topic} interview question
 for a {role} position.{avoid}{seen_note}{resume_context}
 
+DIFFICULTY GUIDE ({difficulty}):
+{DIFFICULTY_GUIDE.get(difficulty, DIFFICULTY_GUIDE["medium"])}
+
 IMPORTANT RULES:
+- Keep the question to one or two sentences, focused on a single topic
+- Never ask about research-level or highly specialised algorithms
 - Ask CONCEPTUAL or DESIGN questions only
 - Do NOT ask questions that require writing code
 - Do NOT say "write a function", "implement", "code a solution"
@@ -256,7 +288,8 @@ async def generate_question_adaptive(
                 attempted_this_session=session_skills_covered)
             if target_skill:
                 resolved_topic = target_skill
-                difficulty = _infer_difficulty(graph.mastery_for(target_skill))
+                difficulty = cap_difficulty(
+                    _infer_difficulty(graph.mastery_for(target_skill)), difficulty)
                 logger.info(
                     f"Adaptive targeting: skill={target_skill} difficulty={difficulty}")
         except Exception as e:

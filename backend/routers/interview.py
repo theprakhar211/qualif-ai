@@ -10,7 +10,8 @@ from services.dependencies import get_current_user
 from services.question_engine import (
     generate_question_adaptive, generate_followup,
     generate_intro_question, generate_resume_question,
-    generate_behavioural_question, question_hash
+    generate_behavioural_question, question_hash,
+    cap_difficulty,
 )
 from services.groq_service import batch_evaluate, _sanitise_answer, ask_groq
 from services.hybrid_evaluator import run_hybrid_evaluation, PhaseType
@@ -281,6 +282,9 @@ async def next_question(
             difficulty = "medium"
         else:
             difficulty = "easy"
+        # The user's chosen difficulty is a ceiling (long answers must not
+        # push an "easy" session into hard questions)
+        difficulty = cap_difficulty(difficulty, session["difficulty"])
 
     phase = get_phase(next_q_number, interview_type)
 
