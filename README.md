@@ -273,7 +273,7 @@ Everything else can stay as-is for local development.
 docker compose up --build
 ```
 
-First run takes 3–5 minutes (downloads images, installs dependencies, fetches spacy model). Subsequent runs take ~10 seconds.
+First run takes 3–5 minutes (downloads images and installs dependencies). Subsequent runs take ~10 seconds.
 
 Wait for:
 ```
@@ -355,7 +355,7 @@ GitHub Actions (`.github/workflows/test.yml`) runs on every push and pull reques
 
 **Render build command:**
 ```
-pip install -r requirements.txt && python -m spacy download en_core_web_sm
+pip install -r requirements.txt
 ```
 
 **Render start command:**
@@ -363,7 +363,7 @@ pip install -r requirements.txt && python -m spacy download en_core_web_sm
 python -m uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
-Python version pinned in `backend/runtime.txt`: `python-3.11.9`
+Python version: set `PYTHON_VERSION=3.11.9` in the Render service's environment variables, to match Docker and CI.
 
 ---
 
