@@ -12,7 +12,6 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir --prefix=/install -r requirements.txt && \
     PYTHONPATH=/install/lib/python3.11/site-packages \
-    python -m spacy download en_core_web_sm --target /install/lib/python3.11/site-packages
 
 
 # ── Stage 2: Runtime ──────────────────────────────────────

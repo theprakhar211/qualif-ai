@@ -50,7 +50,7 @@ Most mock interview tools give you a list of questions and a text box. Qualif-AI
 - WPM tracking, filler word detection, vocabulary diversity (TTR), hedging ratio
 
 ### AI Evaluation
-- Single Groq batch call evaluates all answers at once (~5–8s for 8 answers)
+- A single Groq batch call evaluates all answers at once
 - Phase-aware scoring rubrics — intro scored on communication, technical on accuracy, behavioural on STAR format
 - STT error correction built into evaluation prompt
 
@@ -59,7 +59,7 @@ Most mock interview tools give you a list of questions and a text box. Qualif-AI
 - Keyword bank per topic — checks for expected technical terms
 - Structure detection — intro / explanation / conclusion patterns
 - Depth penalty — penalises genuinely thin or vague answers
-- Blend ratios are phase-aware: LLM carries 72–80% weight, deterministic 20–28%
+- Blend ratios are phase-aware (LLM / deterministic): Introduction 80/20, Behavioural 80/20, Resume 75/25, Technical and Quick Practice 72/28
 
 ### Answer Benchmarking
 - Ideal answer generated once per question by Groq, cached in MongoDB
@@ -67,10 +67,17 @@ Most mock interview tools give you a list of questions and a text box. Qualif-AI
 - Similarity score, improvement tip, common mistakes
 
 ### Skill Graph
-- 35+ skills across 7 categories: Data Structures, Algorithms, System Design, Languages, Concepts, Communication, Behavioural
-- Exponentially weighted mastery (recent sessions weighted more)
+- 42 skills across 7 categories: Data Structures, Algorithms, System Design, Languages, Concepts, Communication, Behavioural
+- Mastery per skill is an exponentially weighted average of its last 5 scores (recent scores count more)
 - Adaptive targeting — next question targets weakest unpractised skill
 - Dashboard shows category breakdown, weakest areas, next target
+
+### Question Deduplication
+- Each asked question is fingerprinted (8-character SHA-256 prefix of the normalised text)
+- The last 200 fingerprints per user are remembered and the question generator is told to avoid repeating earlier topics
+
+### Guest Access
+- One-click guest login (2-hour token) limited to 3 questions per session
 
 ### Dashboard
 - Score trend chart across sessions
@@ -97,7 +104,7 @@ For each answer, a local scorer runs in parallel:
 - Depth penalty: −35% under 20 words, −10% under 50 words, −15% for vague language
 - Hard score floor: if keywords = 0% AND structure = 0% AND word count < 30, cap at 25 regardless of LLM score
 
-Final score = 72% LLM + 28% deterministic for technical questions, 80/20 for intro/behavioural.
+Final score = LLM score × LLM weight + deterministic score × deterministic weight, with the weights set per phase (LLM / deterministic): Introduction 80/20, Behavioural 80/20, Resume 75/25, Technical 72/28, Quick Practice 72/28.
 
 **Stage 4 — Scores committed immediately**
 Scores are written to MongoDB before benchmarking begins. A crash during benchmarking never zeroes a session's scores.
@@ -125,7 +132,7 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + Vite, deployed on Vercel |
+| Frontend | React 19 + Vite, deployed on Vercel |
 | Backend | FastAPI (Python 3.11), deployed on Render |
 | Database | MongoDB Atlas (M0 free tier) |
 | AI | Groq API — gpt-oss-20b (fast) + gpt-oss-120b (smart) |
@@ -134,6 +141,7 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 | Monitoring | Sentry (error tracking + performance) |
 | Rate Limiting | slowapi (per-user JWT key, IP fallback) |
 | Containerisation | Docker + docker-compose |
+| Testing & CI | pytest, Playwright, ruff, mypy, GitHub Actions |
 
 ---
 
@@ -158,11 +166,11 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 
 ### Key Architecture Decisions
 
-**Batch evaluation** — all answers evaluated in a single Groq API call at the end of the interview (~5–8s). Original per-answer evaluation took ~60s total with 8 sequential calls.
+**Batch evaluation** — all answers are evaluated in a single Groq API call at the end of the interview instead of one call per answer.
 
 **Hybrid scoring** — pure LLM scoring is fast but inconsistent. The deterministic layer adds stability: the same answer always produces the same keyword score regardless of LLM variance.
 
-**Ideal answer caching** — ideal answers are generated once per question (fingerprinted by question + role + difficulty) and cached in MongoDB. Repeat sessions hit the cache with no API call.
+**Ideal answer caching** — ideal answers are generated once per question (fingerprinted by question + role + difficulty) and cached in MongoDB, so repeat questions need no extra API call.
 
 **Browser TTS/STT** — tried MeloTTS and Coqui TTS. Browser Web Speech API: zero setup, works everywhere Chrome/Edge supports it. Groq corrects obvious STT errors during evaluation.
 
@@ -176,12 +184,15 @@ Scores are written to MongoDB before benchmarking begins. A crash during benchma
 
 ```
 qualif-ai/
+├── .github/workflows/test.yml   # CI: ruff, mypy, pytest, Playwright E2E
 ├── docker-compose.yml           # Wires backend + MongoDB containers
+├── e2e/                         # Playwright E2E specs (4)
 ├── backend/
 │   ├── Dockerfile               # Multi-stage build: builder → runtime
 │   ├── .env.example             # Environment variable template
 │   ├── main.py                  # FastAPI entry, CORS, Sentry, rate limiting, routers
 │   ├── config.py                # Pydantic settings, reads .env
+│   ├── ruff.toml / mypy.ini / pytest.ini
 │   ├── database.py              # Motor async MongoDB connection + indexes
 │   ├── routers/
 │   │   ├── auth.py              # register, login, /me — JWT
@@ -206,14 +217,16 @@ qualif-ai/
 │   │   └── seed.py              # one-time DB seeder
 │   └── tests/
 │       ├── conftest.py
-│       ├── test_hybrid_evaluator.py   # 60+ unit tests
-│       ├── test_skill_graph.py        # 40+ unit tests
+│       ├── test_hybrid_evaluator.py
+│       ├── test_skill_graph.py
 │       ├── test_groq_service.py
 │       ├── test_guest_auth.py
 │       ├── test_interview_router.py
 │       ├── test_rate_limiter.py
 │       ├── test_resume_parser.py
-│       └── test_answer_quality.py
+│       ├── test_answer_quality.py
+│       ├── test_answer_benchmark.py
+│       └── test_question_difficulty.py
 ├── frontend/
 │   └── src/
 │       ├── pages/
@@ -277,7 +290,7 @@ docker compose exec backend bash -c "PYTHONPATH=/app python /app/data/seed.py"
 
 ```
 Cleared 0 existing questions.
-Seeded 10 fallback questions.
+Seeded 20 fallback questions.
 ```
 
 ### 4. Verify
@@ -320,8 +333,15 @@ npm run dev
 
 ```bash
 docker compose exec backend bash -c "PYTHONPATH=/app pytest tests/ -v"
-# 247 backend tests across 8 test files (plus 4 Playwright E2E specs in e2e/)
+# 277 backend tests across 10 test files (plus 4 Playwright E2E specs in e2e/)
 ```
+
+### CI
+
+GitHub Actions (`.github/workflows/test.yml`) runs on every push and pull request:
+
+1. **Backend job** — `ruff check`, `mypy` on `services/`, then `pytest`
+2. **E2E job** (after the backend job passes) — starts the backend and frontend dev server, then runs the Playwright specs in `e2e/`
 
 ---
 
@@ -374,9 +394,9 @@ Python version pinned in `backend/runtime.txt`: `python-3.11.9`
 
 - **Browser STT only** — no Whisper integration. Technical terms sometimes misrecognised; Groq corrects obvious errors during evaluation. Whisper via Groq API is a planned upgrade.
 - **Render cold start** — free tier sleeps after 15 min idle (~30s wake). Mitigated with UptimeRobot pinging `/health` every 5 minutes.
-- **Groq free tier** — 14,400 requests/day. Sufficient for personal use and portfolio demos.
+- **Groq free tier** — rate limits apply. Sufficient for personal use and portfolio demos.
 - **Voice requires Chrome/Edge** — Firefox does not support Web Speech API. A fallback to typed-only mode is available.
-- **Question deduplication cap** — seen question hashes are capped at 200 (~25 sessions). Questions may repeat beyond that; cap increase or smarter rotation is planned.
+- **Question deduplication cap** — only the last 200 question fingerprints per user are remembered, so older questions can repeat. A larger cap or smarter rotation is planned.
 - **In-memory rate limiting** — slowapi state is not shared across multiple instances. Acceptable for single Render instance; would need Redis backend for horizontal scaling.
 
 ---
