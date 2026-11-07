@@ -120,7 +120,9 @@ async def get_or_generate_ideal_answer(
     # 1. Cache hit
     try:
         cached = await db.ideal_answers_col.find_one({"fingerprint": fp})
-        if cached:
+        # An entry with an empty ideal answer is a leftover from a failed
+        # generation: treat it as a miss so the answer gets regenerated.
+        if cached and cached.get("ideal_answer"):
             logger.info(f"Ideal answer cache hit: {fp}")
             return {
                 "ideal_answer":    cached["ideal_answer"],
@@ -153,19 +155,25 @@ async def get_or_generate_ideal_answer(
             "common_mistakes": [],
         }
 
-    # 3. Cache it
-    try:
-        await db.ideal_answers_col.insert_one({
-            "fingerprint":   fp,
-            "question_text": question_text,
-            "role":          role,
-            "topic":         topic,
-            "difficulty":    difficulty,
-            "created_at":    datetime.now(timezone.utc).isoformat(),
-            **data,
-        })
-    except Exception as e:
-        logger.warning(f"Cache write failed (non-fatal): {e}")
+    # 3. Cache it, but only a real answer. Caching a failed generation (for
+    # example after a Groq rate limit) would keep serving an empty ideal answer.
+    if data.get("ideal_answer"):
+        try:
+            await db.ideal_answers_col.replace_one(
+                {"fingerprint": fp},
+                {
+                    "fingerprint":   fp,
+                    "question_text": question_text,
+                    "role":          role,
+                    "topic":         topic,
+                    "difficulty":    difficulty,
+                    "created_at":    datetime.now(timezone.utc).isoformat(),
+                    **data,
+                },
+                upsert=True,
+            )
+        except Exception as e:
+            logger.warning(f"Cache write failed (non-fatal): {e}")
 
     return {**data, "cached": False}
 

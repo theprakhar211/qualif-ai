@@ -4,11 +4,15 @@ Tests for services/answer_benchmark.py - benchmark_session_answers
 """
 import asyncio
 import time
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.answer_benchmark import _parse_json_response, benchmark_session_answers
+from services.answer_benchmark import (
+    _parse_json_response,
+    benchmark_session_answers,
+    get_or_generate_ideal_answer,
+)
 
 IDEAL = {"ideal_answer": "ideal", "key_concepts": ["a"],
          "scoring_rubric": {}, "common_mistakes": []}
@@ -80,3 +84,55 @@ class TestParseJsonResponse:
     def test_garbage_returns_none(self):
         assert _parse_json_response("not json") is None
         assert _parse_json_response(None) is None
+
+
+GOOD_JSON = ('{"ideal_answer": "a good answer", "key_concepts": ["a"], '
+             '"scoring_rubric": {}, "common_mistakes": []}')
+
+
+def _db(cached=None):
+    db = MagicMock()
+    db.ideal_answers_col.find_one = AsyncMock(return_value=cached)
+    db.ideal_answers_col.replace_one = AsyncMock()
+    return db
+
+
+class TestIdealAnswerCache:
+
+    @pytest.mark.asyncio
+    async def test_good_cache_entry_is_used_without_calling_groq(self):
+        db = _db({"ideal_answer": "cached answer"})
+        with patch("services.answer_benchmark.ask_groq_smart",
+                   new=AsyncMock()) as groq:
+            out = await get_or_generate_ideal_answer(db, "What is a heap?")
+        assert out["ideal_answer"] == "cached answer"
+        assert out["cached"] is True
+        groq.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_empty_cache_entry_is_regenerated_and_replaced(self):
+        db = _db({"ideal_answer": ""})
+        with patch("services.answer_benchmark.ask_groq_smart",
+                   new=AsyncMock(return_value=GOOD_JSON)):
+            out = await get_or_generate_ideal_answer(db, "What is a heap?")
+        assert out["ideal_answer"] == "a good answer"
+        assert out["cached"] is False
+        db.ideal_answers_col.replace_one.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_failed_generation_is_not_cached(self):
+        db = _db(None)
+        with patch("services.answer_benchmark.ask_groq_smart",
+                   new=AsyncMock(return_value=None)):
+            out = await get_or_generate_ideal_answer(db, "What is a heap?")
+        assert out["ideal_answer"] == ""
+        db.ideal_answers_col.replace_one.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_successful_generation_is_cached(self):
+        db = _db(None)
+        with patch("services.answer_benchmark.ask_groq_smart",
+                   new=AsyncMock(return_value=GOOD_JSON)):
+            out = await get_or_generate_ideal_answer(db, "What is a heap?")
+        assert out["ideal_answer"] == "a good answer"
+        db.ideal_answers_col.replace_one.assert_awaited_once()
