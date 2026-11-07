@@ -4,12 +4,15 @@ Tests for services/answer_benchmark.py - benchmark_session_answers
 """
 import asyncio
 import time
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from services.answer_benchmark import (
     _parse_json_response,
+    COMPARISON_UNAVAILABLE,
+    benchmark_answer,
     benchmark_session_answers,
     get_or_generate_ideal_answer,
 )
@@ -136,3 +139,44 @@ class TestIdealAnswerCache:
             out = await get_or_generate_ideal_answer(db, "What is a heap?")
         assert out["ideal_answer"] == "a good answer"
         db.ideal_answers_col.replace_one.assert_awaited_once()
+
+
+class TestBenchmarkFallbackAndEffort:
+
+    @pytest.mark.asyncio
+    async def test_unparseable_comparison_hides_raw_model_text(self):
+        raw = '{"covered_concepts": ["a"], "missing_conc'   # cut-off JSON
+        with patch("services.answer_benchmark.ask_groq",
+                   new=AsyncMock(return_value=raw)):
+            out = await benchmark_answer(
+                "What is a heap?", "an answer", {"key_concepts": ["heap"]})
+        assert out["comparison_feedback"] == COMPARISON_UNAVAILABLE
+        assert "{" not in out["comparison_feedback"]
+        assert out["missing_concepts"] == ["heap"]
+
+    @pytest.mark.asyncio
+    async def test_reasoning_effort_is_off_by_default(self):
+        with patch("services.answer_benchmark.settings",
+                   SimpleNamespace(BENCHMARK_REASONING_EFFORT="")), \
+             patch("services.answer_benchmark.ask_groq_smart",
+                   new=AsyncMock(return_value=GOOD_JSON)) as groq:
+            await get_or_generate_ideal_answer(_db(None), "What is a heap?")
+        assert groq.await_args.kwargs["reasoning_effort"] is None
+
+    @pytest.mark.asyncio
+    async def test_reasoning_effort_is_passed_when_configured(self):
+        with patch("services.answer_benchmark.settings",
+                   SimpleNamespace(BENCHMARK_REASONING_EFFORT="Low")), \
+             patch("services.answer_benchmark.ask_groq_smart",
+                   new=AsyncMock(return_value=GOOD_JSON)) as groq:
+            await get_or_generate_ideal_answer(_db(None), "What is a heap?")
+        assert groq.await_args.kwargs["reasoning_effort"] == "low"
+
+    @pytest.mark.asyncio
+    async def test_invalid_reasoning_effort_is_ignored(self):
+        with patch("services.answer_benchmark.settings",
+                   SimpleNamespace(BENCHMARK_REASONING_EFFORT="turbo")), \
+             patch("services.answer_benchmark.ask_groq_smart",
+                   new=AsyncMock(return_value=GOOD_JSON)) as groq:
+            await get_or_generate_ideal_answer(_db(None), "What is a heap?")
+        assert groq.await_args.kwargs["reasoning_effort"] is None

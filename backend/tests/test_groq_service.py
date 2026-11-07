@@ -409,3 +409,22 @@ class TestBatchEvaluateRecovery:
             result = await batch_evaluate("Software Engineer", _ONE_ANSWER)
         assert mock.call_count == 2
         assert result[0]["score"] != 77
+
+
+class TestAskGroqSmartReasoningEffort:
+
+    @pytest.mark.asyncio
+    async def test_reasoning_effort_is_forwarded(self):
+        from services.groq_service import ask_groq_smart
+        with patch("services.groq_service.ask_groq",
+                   new=AsyncMock(return_value="ok")) as inner:
+            await ask_groq_smart("hi", reasoning_effort="low")
+        assert inner.await_args.kwargs["reasoning_effort"] == "low"
+
+    @pytest.mark.asyncio
+    async def test_reasoning_effort_defaults_to_none(self):
+        from services.groq_service import ask_groq_smart
+        with patch("services.groq_service.ask_groq",
+                   new=AsyncMock(return_value="ok")) as inner:
+            await ask_groq_smart("hi")
+        assert inner.await_args.kwargs["reasoning_effort"] is None

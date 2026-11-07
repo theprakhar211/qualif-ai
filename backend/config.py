@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     GROQ_FAST_MODEL:  str = "openai/gpt-oss-20b"
     GROQ_SMART_MODEL: str = "openai/gpt-oss-120b"
     SENTRY_DSN:       str = ""
+    # Optional experiment: "low" | "medium" | "high" reasoning effort for the
+    # ideal-answer and comparison calls. Empty keeps the model default.
+    BENCHMARK_REASONING_EFFORT: str = ""
 
 
 settings = Settings()

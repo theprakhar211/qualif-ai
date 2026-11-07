@@ -90,6 +90,7 @@ async def ask_groq_smart(
     system: str = "",
     temperature: float = 0.3,
     max_tokens: int = 2048,
+    reasoning_effort: str | None = None,
 ) -> str | None:
     """Convenience wrapper that always uses the smart (70B) model."""
     return await ask_groq(
@@ -98,6 +99,7 @@ async def ask_groq_smart(
         model=settings.GROQ_SMART_MODEL,
         temperature=temperature,
         max_tokens=max_tokens,
+        reasoning_effort=reasoning_effort,
     )
 
 

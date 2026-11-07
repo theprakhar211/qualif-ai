@@ -11,6 +11,8 @@ import re
 from datetime import datetime, timezone
 from loguru import logger
 
+from config import settings
+
 # Import directly — no injected client needed
 from services.groq_service import (
     ask_groq, ask_groq_smart, _sanitise_answer, _repair_json_escapes,
@@ -104,6 +106,15 @@ def _parse_json_response(raw: str | None) -> dict | None:
     return None
 
 
+COMPARISON_UNAVAILABLE = "A detailed comparison isn't available for this answer."
+
+
+def _benchmark_effort() -> str | None:
+    """Optional reasoning effort for benchmark calls (config experiment)."""
+    effort = settings.BENCHMARK_REASONING_EFFORT.strip().lower()
+    return effort if effort in ("low", "medium", "high") else None
+
+
 async def get_or_generate_ideal_answer(
     db,
     question_text: str,
@@ -142,7 +153,10 @@ async def get_or_generate_ideal_answer(
         difficulty=difficulty,
     )
 
-    raw = await ask_groq_smart(prompt, temperature=0.3, max_tokens=2048)
+    raw = await ask_groq_smart(
+        prompt, temperature=0.3, max_tokens=2048,
+        reasoning_effort=_benchmark_effort(),
+    )
     data = _parse_json_response(raw)
 
     if not data:
@@ -193,18 +207,21 @@ async def benchmark_answer(
         key_concepts=", ".join(ideal_data.get("key_concepts", [])),
     )
 
-    raw = await ask_groq(prompt, model=None, temperature=0.2, max_tokens=1024)
+    raw = await ask_groq(
+        prompt, model=None, temperature=0.2, max_tokens=1024,
+        reasoning_effort=_benchmark_effort(),
+    )
     parsed = _parse_json_response(raw)
 
     if not parsed:
         logger.warning(
             f"Could not parse benchmark comparison for: {question_text[:60]} "
-            f"| raw: {(raw or '')[:200]!r}")
+            f"| raw: {(raw or '')[:1000]!r}")
         return {
             "covered_concepts":    [],
             "missing_concepts":    ideal_data.get("key_concepts", []),
             "extra_concepts":      [],
-            "comparison_feedback": raw or "",
+            "comparison_feedback": COMPARISON_UNAVAILABLE,
             "improvement_tip":     "",
             "similarity_score":    0,
         }

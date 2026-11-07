@@ -16,7 +16,11 @@ Fixtures (mock_user, mock_session, mock_db, test_client) come from conftest.py.
 from unittest.mock import AsyncMock, patch
 from bson import ObjectId
 
-from routers.interview import _compute_communication_score, get_phase
+from routers.interview import (
+    _compute_communication_score,
+    _injection_prompt,
+    get_phase,
+)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -310,3 +314,16 @@ class TestEvaluateSession:
         mock_db.sessions_col.find_one = AsyncMock(return_value=None)
         response = test_client.post(f"/interview/evaluate/{ObjectId()}")
         assert response.status_code == 404
+
+
+class TestInjectionPrompt:
+
+    def test_contains_question_and_answer(self):
+        p = _injection_prompt("What is a heap?", "I would use a tree")
+        assert "What is a heap?" in p
+        assert "I would use a tree" in p
+
+    def test_off_topic_answers_are_not_injections(self):
+        p = _injection_prompt("What is a heap?", "banana")
+        assert "NOT an injection" in p
+        assert "INJECTION" in p and "GENUINE" in p
