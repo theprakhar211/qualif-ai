@@ -333,7 +333,7 @@ npm run dev
 
 ```bash
 docker compose exec backend bash -c "PYTHONPATH=/app pytest tests/ -v"
-# 281 backend tests across 10 test files (plus 4 Playwright E2E specs in e2e/)
+# 280+ backend tests across 10 test files (plus 4 Playwright E2E specs in e2e/)
 ```
 
 ### CI
